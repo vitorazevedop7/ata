@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerCapture } from './capture'
 import { registerJobsIpc } from './jobs'
+import { registerImportIpc } from './importer'
 import { registerRecordingIpc } from './recordings'
 import { startRetention } from './retention'
 import { registerSearchIpc } from './search'
@@ -65,6 +66,7 @@ app.whenReady().then(() => {
 
   registerCapture()
   registerRecordingIpc()
+  registerImportIpc()
   registerJobsIpc()
   registerSearchIpc()
   startRetention()

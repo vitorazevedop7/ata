@@ -34,14 +34,18 @@ function modelsDir(): string {
   return process.env.GRANOLA_MODELS_DIR ?? join(localAppData(), 'granola-local', 'models')
 }
 
+/** ffmpeg alone: importing a file doesn't need Whisper or its models. */
+export function resolveFfmpeg(): string {
+  const bundled = join(programs(), 'ffmpeg', 'bin', 'ffmpeg.exe')
+  return process.env.GRANOLA_FFMPEG ?? (existsSync(bundled) ? bundled : 'ffmpeg')
+}
+
 /**
  * Finds ffmpeg, whisper.cpp and the models. Defaults match the setup in
  * CLAUDE.md; GRANOLA_FFMPEG, GRANOLA_WHISPER_CLI and GRANOLA_MODELS_DIR override them.
  */
 export function resolveTools(): Tools {
-  const bundledFfmpeg = join(programs(), 'ffmpeg', 'bin', 'ffmpeg.exe')
-  const ffmpeg =
-    process.env.GRANOLA_FFMPEG ?? (existsSync(bundledFfmpeg) ? bundledFfmpeg : 'ffmpeg')
+  const ffmpeg = resolveFfmpeg()
 
   const whisperCli = process.env.GRANOLA_WHISPER_CLI
     ? [process.env.GRANOLA_WHISPER_CLI]

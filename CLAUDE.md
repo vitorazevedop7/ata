@@ -16,11 +16,12 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 - `src/main`: processo principal.
   - `capture.ts`: microfone + loopback do sistema.
   - `recordings.ts`: IPC das gravações (gravar, listar, apagar áudio).
+  - `importer.ts`: importa arquivo de áudio ou vídeo (botão Importar ou arrastar). O ffmpeg converte para opus mono em `system.webm`; o `meta.json` ganha `source: 'import'`, o nome do arquivo e `importedAt` (o prazo de 7 dias conta a partir da importação). Na interface e no resumo, o falante único aparece como "Conversa".
   - `jobs.ts`: fila única de tarefas (transcrever, resumir), uma por vez, com status para a interface.
   - `transcription.ts`: ffmpeg → whisper.cpp. `summary.ts` e `ollama.ts`: resumo com o Ollama local, em partes para conversas longas.
   - `retention.ts`: apaga o áudio 7 dias depois da gravação (na abertura e a cada hora). Transcrição e resumo ficam.
   - `store.ts` (meta.json, apagar áudio), `paths.ts`, `tools.ts` (onde ficam ffmpeg, whisper, Ollama e modelos), `process.ts`.
-- `src/preload`: ponte `window.api` (`recording`, `jobs`, `results`, `copyText`).
+- `src/preload`: ponte `window.api` (`recording`, `importer`, `jobs`, `results`, `copyText`).
 - `src/renderer`: interface React. `App.tsx` (barra, lista), `components/RecordingDetail.tsx` (transcrição e resumo), `components/controls.tsx` (menus, confirmação, copiar, progresso), `format.ts`.
 - `src/shared`: tipos usados pelos três.
 - Gravações ficam em `%APPDATA%\granola-local\recordings\<id>\`: `mic.webm`, `system.webm` (apagados depois de 7 dias ou antes, se o usuário pedir), `meta.json`, `transcript.json`, `summary.json`.

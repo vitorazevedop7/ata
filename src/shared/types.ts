@@ -14,6 +14,8 @@ export interface RecordingSummary {
   audioExpiresAt: string
   hasTranscript: boolean
   hasSummary: boolean
+  /** Name of the imported file, or null for a recording made in the app. */
+  importedFileName: string | null
 }
 
 export interface TranscriptSegment {
@@ -74,6 +76,42 @@ export interface RecordingApi {
   list(): Promise<RecordingSummary[]>
   deleteAudio(id: string): Promise<void>
   openFolder(id?: string): Promise<void>
+}
+
+/** Extensions accepted by "Importar" and by dropping files on the window. */
+export const IMPORT_EXTENSIONS: readonly string[] = [
+  'mp3',
+  'm4a',
+  'ogg',
+  'opus',
+  'wav',
+  'mp4',
+  'webm',
+  'mkv'
+]
+
+export interface ImportProgress {
+  fileName: string
+  /** Position of this file among the ones being imported (0-based). */
+  index: number
+  total: number
+  /** 0..100 when the file's duration is known. */
+  percent?: number
+}
+
+export interface ImportResult {
+  ids: string[]
+  /** One message per file that could not be imported. */
+  errors: string[]
+}
+
+export interface ImportApi {
+  /** Imports the given files, or asks for them with the system dialog when omitted. */
+  files(paths?: string[]): Promise<ImportResult>
+  /** Absolute path of a file dropped on the window. */
+  pathOf(file: File): string
+  /** Subscribes to conversion progress (null when it ends); returns the unsubscribe function. */
+  onProgress(listener: (progress: ImportProgress | null) => void): () => void
 }
 
 export interface JobsApi {
