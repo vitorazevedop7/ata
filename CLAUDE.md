@@ -7,7 +7,7 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 
 - `npm run dev`: abre o app em modo de desenvolvimento.
 - `npm run typecheck`, `npm run lint`, `npm run build`: rode os três antes de dizer que uma mudança está pronta.
-- `npm run build:win`: gera o instalador `dist/granola-local-<versão>-setup.exe`. Rodar o instalador atualiza o app instalado (Menu Iniciar e área de trabalho, sem precisar de admin). O app instalado e o `npm run dev` usam a mesma pasta de dados.
+- `npm run build:win`: gera o instalador `dist/granola-local-<versão>-setup.exe`. Rodar o instalador atualiza o app instalado (Menu Iniciar e área de trabalho, sem precisar de admin). O app instalado e o `npm run dev` usam a mesma pasta de dados, desde que os dois sejam abertos fora do Claude (veja "Ambiente local").
 - `npm run install:app`: gera o instalador e instala de uma vez (`scripts/install-app.mjs`). Para se o app estiver aberto; `npm run install:app -- --force` fecha o app antes.
 - Node fica em `%LOCALAPPDATA%\Programs\nodejs`; se `npm` não for encontrado no shell, adicione essa pasta ao `PATH`.
 
@@ -67,3 +67,7 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 - Modelos ficam em `%LOCALAPPDATA%\granola-local\models` (Ollama com `OLLAMA_MODELS` apontando para `models\ollama`).
 - Modelos usados: `ggml-large-v3-turbo-q5_0.bin` (Whisper), `ggml-silero-v6.2.0.bin` (detector de voz) e `qwen3.5:4b` no Ollama (resumo). O app liga o `ollama serve` sozinho se ele não estiver rodando.
 - Transcrição: build CUDA com `-l auto -bs 1 -bo 1 -mc 0 --vad`. O beam search padrão é ~15× mais lento nesta máquina; sem `--vad`, o Whisper inventa frases repetidas nos trechos de silêncio; idioma fixo estraga áudio em outra língua.
+- **O app aberto a partir do Claude não grava na pasta real.** O Claude para Windows é um app empacotado (MSIX); o que ele abre (`npm run dev`, o `.exe` rodado por uma ferramenta) tem o `%APPDATA%` desviado para `%LOCALAPPDATA%\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\granola-local`. De dentro do Claude essa pasta parece ser a real, então um terminal do Claude mostra as gravações mesmo quando o app aberto pelo Menu Iniciar não mostra nada.
+  - Gravações de verdade: o usuário abre o app pelo Menu Iniciar ou pela área de trabalho.
+  - Para conferir o que o usuário vê, peça a ele para abrir o app; não confie no que o app mostra quando aberto pelo Claude.
+  - Para mover dados entre as duas pastas, o comando precisa rodar num terminal aberto pelo usuário, fora do Claude; de dentro, a escrita é desviada de novo.
