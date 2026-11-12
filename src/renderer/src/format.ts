@@ -19,11 +19,6 @@ export function formatClock(seconds: number): string {
   return hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`
 }
 
-export function durationOf(item: RecordingSummary): string | null {
-  if (!item.endedAt) return null
-  return formatClock((Date.parse(item.endedAt) - Date.parse(item.startedAt)) / 1000)
-}
-
 function startOfDay(date: Date): number {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()
 }
@@ -41,13 +36,49 @@ const longDay = new Intl.DateTimeFormat('pt-BR', {
 })
 const plainDay = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'short' })
 
+/** Whole days between the start of today and the start of the given date's day. */
+function daysAgo(date: Date): number {
+  return Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000)
+}
+
+const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1)
+
+/** Library section a recording belongs to. */
+export function dayGroup(iso: string): string {
+  const days = daysAgo(new Date(iso))
+  if (days <= 0) return 'Hoje'
+  if (days === 1) return 'Ontem'
+  if (days < 7) return 'Últimos 7 dias'
+  return 'Mais antigas'
+}
+
+/** Row title inside a library section: "10:15" for today and yesterday, "Qua., 5 de nov. · 10:15" before that. */
+export function formatRowTitle(iso: string): string {
+  const date = new Date(iso)
+  const days = daysAgo(date)
+  if (days <= 1) return time.format(date)
+  return `${capitalize(shortDay.format(date))} · ${time.format(date)}`
+}
+
 /** "Hoje, 10:15", "Ontem, 18:02" or "qua., 5 de nov., 10:15". */
 export function formatWhen(iso: string, long = false): string {
   const date = new Date(iso)
-  const days = Math.round((startOfDay(new Date()) - startOfDay(date)) / 86_400_000)
+  const days = daysAgo(date)
   const day = days === 0 ? 'Hoje' : days === 1 ? 'Ontem' : (long ? longDay : shortDay).format(date)
-  const label = day.charAt(0).toUpperCase() + day.slice(1)
-  return `${label}, ${time.format(date)}`
+  return `${capitalize(day)}, ${time.format(date)}`
+}
+
+/** "47 min", "1 h 03 min" or "40 s": durations read as words, the clock is for timestamps. */
+export function formatLength(item: RecordingSummary): string | null {
+  if (!item.endedAt) return null
+  const seconds = Math.max(
+    0,
+    Math.round((Date.parse(item.endedAt) - Date.parse(item.startedAt)) / 1000)
+  )
+  if (seconds < 60) return `${seconds} s`
+  const minutes = Math.round(seconds / 60)
+  if (minutes < 60) return `${minutes} min`
+  return `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min`
 }
 
 export function audioNote(item: RecordingSummary): string {
