@@ -17,7 +17,8 @@ resumo, decisões e tarefas com IA. Tudo roda na máquina do usuário.
 | Captura | Dois canais: microfone ("Eu") e áudio do sistema por loopback ("Outros") | Mesmo modelo do Granola (ver `re-findings.md`); separa quem fala sem diarização |
 | Transcrição | whisper.cpp local, modelo `large-v3-turbo` quantizado | Grátis, offline, bom em pt-BR; roda em CPU e aproveita GPU quando houver |
 | IA (resumo, tarefas, chat) | Ollama local, modelo pequeno (3–8B, família Qwen ou Gemma) | Grátis e privado. Fica atrás de uma interface para poder trocar de modelo/provedor depois |
-| Armazenamento | SQLite local | Simples, um arquivo, sem servidor |
+| Armazenamento | Uma pasta por gravação com arquivos JSON (`meta`, `transcript`, `summary`) | Mais simples que SQLite enquanto não há busca; dá para migrar depois |
+| Retenção do áudio | Áudio apagado 7 dias depois da gravação; opção "Transcrever e apagar áudio" e botão "Apagar áudio" | Áudio de reunião é o dado mais sensível e o mais pesado; o texto é o que tem valor |
 | Tempo real | Fora do MVP | Inviável localmente no hardware atual |
 
 Opções descartadas: APIs pagas (Claude, OpenAI, Gemini pago, DeepSeek) por custo;
@@ -34,6 +35,8 @@ limites apertados (1h de reunião estoura o limite por minuto do Groq).
 5. Chat com uma reunião ("o que foi combinado sobre X?").
 6. Histórico de reuniões com busca por texto.
 7. Fila de processamento com progresso visível (é lento; o usuário precisa saber em que etapa está).
+8. Áudio apagado automaticamente depois de 7 dias, ou antes, quando o usuário pedir.
+9. Copiar transcrição e resumo.
 
 **Fica para depois**
 - Transcrição e sugestões em tempo real.

@@ -1,99 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Channel, RecordingSummary, Transcript, TranscriptionStatus } from '../../shared/types'
+import type { Channel, JobKind, JobStatus, RecordingSummary } from '../../shared/types'
+import { Progress, TranscribeMenu } from './components/controls'
+import { WaveIcon } from './components/icons'
+import { RecordingDetail } from './components/RecordingDetail'
+import { describeJob, durationOf, formatClock, formatWhen } from './format'
 import { type ActiveRecording, CaptureError, startRecording } from './recorder'
 
-const CHANNEL_LABEL: Record<Channel, string> = { mic: 'Eu (microfone)', system: 'Outros (sistema)' }
-const SPEAKER: Record<Channel, string> = { mic: 'Eu', system: 'Outros' }
-const CHANNEL_NAME: Record<Channel, string> = { mic: 'microfone', system: 'sistema' }
-
-function formatClock(seconds: number): string {
-  const s = Math.floor(seconds)
-  const hh = Math.floor(s / 3600)
-  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
-  const ss = String(s % 60).padStart(2, '0')
-  return hh > 0 ? `${hh}:${mm}:${ss}` : `${mm}:${ss}`
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
-
-function durationOf(item: RecordingSummary): string {
-  if (!item.endedAt) return 'incompleta'
-  return formatClock((Date.parse(item.endedAt) - Date.parse(item.startedAt)) / 1000)
-}
-
-function describe(status: TranscriptionStatus): string {
-  const channel = status.channel ? ` (${CHANNEL_NAME[status.channel]})` : ''
-  switch (status.stage) {
-    case 'queued':
-      return 'Na fila para transcrever'
-    case 'converting':
-      return `Preparando áudio${channel}`
-    case 'transcribing':
-      return `Transcrevendo${channel} ${status.percent ?? 0}%`
-    case 'error':
-      return 'Erro na transcrição'
-    default:
-      return ''
-  }
-}
+const jobKey = (id: string, kind: JobKind): string => `${kind}:${id}`
 
 function Meter({ label, level }: { label: string; level: number }): React.JSX.Element {
   // RMS of speech sits around 0.01–0.2; scale so normal speech fills most of the bar.
-  const percent = Math.min(100, Math.sqrt(level) * 220)
+  const fill = Math.min(1, Math.sqrt(level) * 2.2)
   return (
     <div className="meter">
       <span className="meter-label">{label}</span>
       <div className="meter-track">
-        <div className="meter-fill" style={{ width: `${percent}%` }} />
+        <div className="meter-fill" style={{ transform: `scaleX(${fill})` }} />
       </div>
     </div>
   )
 }
 
-function TranscriptView({
-  item,
-  transcript,
-  onClose
-}: {
-  item: RecordingSummary
-  transcript: Transcript
-  onClose: () => void
-}): React.JSX.Element {
-  const languages = Object.entries(transcript.languages)
-    .map(([channel, lang]) => `${SPEAKER[channel as Channel]}: ${lang}`)
-    .join(' · ')
-  return (
-    <section className="transcript">
-      <div className="history-header">
-        <div>
-          <h2>Transcrição</h2>
-          <p className="transcript-meta">
-            {new Date(item.startedAt).toLocaleString('pt-BR')}
-            {languages && ` · idioma ${languages}`}
-          </p>
-        </div>
-        <button className="link" onClick={onClose}>
-          Fechar
-        </button>
-      </div>
-      {transcript.segments.length === 0 ? (
-        <p className="empty">Nenhuma fala detectada.</p>
-      ) : (
-        <ol className="segments">
-          {transcript.segments.map((segment, index) => (
-            <li key={index} className={`segment ${segment.channel}`}>
-              <span className="segment-time">{formatClock(segment.startMs / 1000)}</span>
-              <span className="segment-speaker">{SPEAKER[segment.channel]}</span>
-              <span className="segment-text">{segment.text}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
-  )
+function rowStatus(item: RecordingSummary, live: boolean, status?: JobStatus): string {
+  if (!item.endedAt) return live ? 'Gravando agora' : 'Incompleta'
+  if (status) return describeJob(status)
+  if (item.hasSummary) return 'Resumida'
+  if (item.hasTranscript) return 'Transcrita'
+  return item.hasAudio ? 'Não transcrita' : 'Áudio apagado'
 }
 
 function App(): React.JSX.Element {
@@ -103,8 +36,10 @@ function App(): React.JSX.Element {
   const [elapsed, setElapsed] = useState(0)
   const [levels, setLevels] = useState<Record<Channel, number>>({ mic: 0, system: 0 })
   const [recordings, setRecordings] = useState<RecordingSummary[]>([])
-  const [statuses, setStatuses] = useState<Record<string, TranscriptionStatus>>({})
-  const [selected, setSelected] = useState<{ id: string; transcript: Transcript } | null>(null)
+  const [statuses, setStatuses] = useState<Record<string, JobStatus>>({})
+  const [revisions, setRevisions] = useState<Record<string, number>>({})
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [view, setView] = useState<'list' | 'detail'>('list')
   const startedAt = useRef(0)
 
   const refresh = useCallback(async () => {
@@ -113,27 +48,33 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     let cancelled = false
-    Promise.all([window.api.recording.list(), window.api.transcription.statuses()]).then(
+    Promise.all([window.api.recording.list(), window.api.jobs.statuses()]).then(
       ([items, current]) => {
         if (cancelled) return
         setRecordings(items)
-        setStatuses(Object.fromEntries(current.map((status) => [status.id, status])))
+        setSelectedId((id) => id ?? items[0]?.id ?? null)
+        setStatuses(Object.fromEntries(current.map((s) => [jobKey(s.id, s.kind), s])))
       }
     )
-    const unsubscribe = window.api.transcription.onStatus((status) => {
+    const offStatus = window.api.jobs.onStatus((status) => {
       setStatuses((previous) => {
         const next = { ...previous }
-        if (status.stage === 'done') delete next[status.id]
-        else next[status.id] = status
+        if (status.stage === 'done') delete next[jobKey(status.id, status.kind)]
+        else next[jobKey(status.id, status.kind)] = status
         return next
       })
-      if (status.stage === 'done') {
+      if (status.stage === 'done' || status.stage === 'error') {
+        setRevisions((previous) => ({ ...previous, [status.id]: (previous[status.id] ?? 0) + 1 }))
         void window.api.recording.list().then(setRecordings)
       }
     })
+    const offChanged = window.api.recording.onChanged(() => {
+      void window.api.recording.list().then(setRecordings)
+    })
     return () => {
       cancelled = true
-      unsubscribe()
+      offStatus()
+      offChanged()
     }
   }, [])
 
@@ -157,6 +98,8 @@ function App(): React.JSX.Element {
       startedAt.current = performance.now()
       setElapsed(0)
       setActive(recording)
+      setSelectedId(recording.id)
+      await refresh()
     } catch (err) {
       setError(err instanceof CaptureError ? err.message : `Erro ao iniciar: ${String(err)}`)
     } finally {
@@ -179,112 +122,131 @@ function App(): React.JSX.Element {
     }
   }
 
-  const onView = async (id: string): Promise<void> => {
-    const transcript = await window.api.transcription.get(id)
-    if (transcript) setSelected({ id, transcript })
+  const select = (id: string): void => {
+    setSelectedId(id)
+    setView('detail')
   }
 
-  const selectedItem = selected && recordings.find((item) => item.id === selected.id)
+  const selected = recordings.find((item) => item.id === selectedId) ?? null
 
   return (
-    <main className="app">
-      <header>
-        <h1>Granola Local</h1>
-        <p className="subtitle">Grava o microfone e o áudio do sistema em canais separados.</p>
-      </header>
-
-      <section className="recorder">
-        <div className="controls">
-          {active ? (
-            <button className="stop" onClick={onStop} disabled={busy}>
-              Parar
-            </button>
-          ) : (
-            <button className="record" onClick={onStart} disabled={busy}>
-              Gravar
-            </button>
-          )}
-          <span className={`clock${active ? ' live' : ''}`}>{formatClock(elapsed)}</span>
+    <div className="shell">
+      <header className="toolbar">
+        <div className="brand">
+          <WaveIcon className="brand-icon" />
+          <span>Granola Local</span>
         </div>
-        <Meter label={CHANNEL_LABEL.mic} level={levels.mic} />
-        <Meter label={CHANNEL_LABEL.system} level={levels.system} />
-        {active && (
-          <p className="notice">
-            Avise os outros participantes de que a conversa está sendo gravada.
-          </p>
-        )}
-        {error && <p className="error">{error}</p>}
-      </section>
-
-      <section className="history">
-        <div className="history-header">
-          <h2>Gravações</h2>
-          <button className="link" onClick={() => window.api.recording.openFolder()}>
-            Abrir pasta
+        <div className="toolbar-actions">
+          {active && (
+            <span className="rec-clock" aria-live="off">
+              <span className="rec-dot" aria-hidden />
+              {formatClock(elapsed)}
+            </span>
+          )}
+          <button
+            className={`rec-button${active ? ' recording' : ''}`}
+            onClick={active ? onStop : onStart}
+            disabled={busy}
+          >
+            <span className="rec-glyph" aria-hidden />
+            {active ? 'Parar' : 'Gravar'}
           </button>
         </div>
-        {recordings.length === 0 ? (
-          <p className="empty">Nenhuma gravação ainda.</p>
-        ) : (
-          <ul className="recordings">
-            {recordings.map((item) => {
-              const status = statuses[item.id]
-              const working = status && status.stage !== 'error'
-              return (
-                <li key={item.id}>
-                  <div className="recording-main">
-                    <span className="when">{new Date(item.startedAt).toLocaleString('pt-BR')}</span>
-                    <span className="recording-meta">
-                      mic {formatBytes(item.bytes.mic)} · sistema {formatBytes(item.bytes.system)}
-                      {status && (
-                        <span
-                          className={`status ${status.stage}`}
-                          title={status.error ?? undefined}
-                        >
-                          {' · '}
-                          {describe(status)}
+      </header>
+
+      <div className={`live-panel${active ? ' open' : ''}`} aria-hidden={!active}>
+        <div className="live-inner">
+          <Meter label="Eu" level={levels.mic} />
+          <Meter label="Outros" level={levels.system} />
+          <p className="caption">Avise as outras pessoas de que a conversa está sendo gravada.</p>
+        </div>
+      </div>
+
+      {error && (
+        <div className="banner" role="alert">
+          <span>{error}</span>
+          <button className="btn plain" onClick={() => setError(null)}>
+            Fechar
+          </button>
+        </div>
+      )}
+
+      <div className="split" data-view={view}>
+        <aside className="library" aria-label="Gravações">
+          <h1 className="library-title">Gravações</h1>
+          {recordings.length === 0 ? (
+            <div className="empty">
+              <p className="empty-title">Nenhuma gravação ainda</p>
+              <p className="caption">
+                Clique em Gravar durante uma reunião ou ligação. O microfone vira “Eu” e o som do
+                computador vira “Outros”.
+              </p>
+            </div>
+          ) : (
+            <ul className="rows">
+              {recordings.map((item) => {
+                const status =
+                  statuses[jobKey(item.id, 'transcribe')] ?? statuses[jobKey(item.id, 'summarize')]
+                const working = status && status.stage !== 'error'
+                const canTranscribe =
+                  !item.hasTranscript && item.hasAudio && !!item.endedAt && !working
+                return (
+                  <li key={item.id} className={item.id === selectedId ? 'selected' : undefined}>
+                    <button
+                      className="row"
+                      aria-current={item.id === selectedId}
+                      onClick={() => select(item.id)}
+                    >
+                      <span className="row-title">{formatWhen(item.startedAt)}</span>
+                      <span className={`row-sub${status?.stage === 'error' ? ' error' : ''}`}>
+                        {durationOf(item) ?? '—'} ·{' '}
+                        {rowStatus(item, active?.id === item.id, status)}
+                      </span>
+                      {working && (
+                        <span className="row-progress">
+                          <Progress label="" percent={status.percent} />
                         </span>
                       )}
-                    </span>
-                  </div>
-                  <span className="duration">{durationOf(item)}</span>
-                  <div className="actions">
-                    {item.hasTranscript && !working && (
-                      <button className="link" onClick={() => onView(item.id)}>
-                        Ver transcrição
-                      </button>
-                    )}
-                    {!item.hasTranscript && !working && (
-                      <button
-                        className="link"
-                        onClick={() => window.api.transcription.start(item.id)}
-                        disabled={!item.endedAt}
-                      >
-                        {status?.stage === 'error' ? 'Tentar de novo' : 'Transcrever'}
-                      </button>
-                    )}
-                    <button
-                      className="link muted"
-                      onClick={() => window.api.recording.openFolder(item.id)}
-                    >
-                      Pasta
                     </button>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
+                    {canTranscribe && item.id !== selectedId && (
+                      <div className="row-action">
+                        <TranscribeMenu
+                          className="btn small"
+                          onTranscribe={(deleteAudio) =>
+                            void window.api.jobs.transcribe(item.id, { deleteAudio })
+                          }
+                        />
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </aside>
 
-      {selected && selectedItem && (
-        <TranscriptView
-          item={selectedItem}
-          transcript={selected.transcript}
-          onClose={() => setSelected(null)}
-        />
-      )}
-    </main>
+        <main className="detail">
+          {selected ? (
+            <RecordingDetail
+              key={selected.id}
+              item={selected}
+              revision={revisions[selected.id] ?? 0}
+              live={active?.id === selected.id}
+              transcribeStatus={statuses[jobKey(selected.id, 'transcribe')]}
+              summarizeStatus={statuses[jobKey(selected.id, 'summarize')]}
+              onBack={() => setView('list')}
+              onError={setError}
+              onChanged={() => void refresh()}
+            />
+          ) : (
+            <div className="empty center">
+              <p className="empty-title">Selecione uma gravação</p>
+              <p className="caption">A transcrição e o resumo aparecem aqui.</p>
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
   )
 }
 
