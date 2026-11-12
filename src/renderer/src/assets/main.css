@@ -451,7 +451,8 @@ button {
 }
 
 .rows li.selected .row-length,
-.rows li.selected .row-state {
+.rows li.selected .row-state,
+.rows li.selected .row-file {
   color: var(--ink-2);
 }
 
@@ -1671,7 +1672,8 @@ button {
   }
 
   .rows li.selected .row-length,
-  .rows li.selected .row-state {
+  .rows li.selected .row-state,
+  .rows li.selected .row-file {
     color: var(--cover-ink-2);
   }
 
