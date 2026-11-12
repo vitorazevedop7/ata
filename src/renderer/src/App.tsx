@@ -319,6 +319,7 @@ function App(): React.JSX.Element {
             live={active?.id === selected.id}
             transcribeStatus={statuses[jobKey(selected.id, 'transcribe')]}
             summarizeStatus={statuses[jobKey(selected.id, 'summarize')]}
+            askStatus={statuses[jobKey(selected.id, 'ask')]}
             onBack={() => setView('list')}
             onError={setError}
             onChanged={() => void refresh()}
