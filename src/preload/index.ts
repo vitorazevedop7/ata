@@ -5,6 +5,7 @@ import type {
   JobsApi,
   RecordingApi,
   ResultsApi,
+  SearchApi,
   TranscribeOptions
 } from '../shared/types'
 
@@ -40,6 +41,10 @@ const results: ResultsApi = {
   summary: (id: string) => ipcRenderer.invoke('results:summary', id)
 }
 
+const search: SearchApi = {
+  query: (text: string) => ipcRenderer.invoke('search:query', text)
+}
+
 const copyText = (text: string): Promise<void> => ipcRenderer.invoke('app:copy', text)
 
-contextBridge.exposeInMainWorld('api', { recording, jobs, results, copyText })
+contextBridge.exposeInMainWorld('api', { recording, jobs, results, search, copyText })
