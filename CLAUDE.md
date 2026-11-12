@@ -8,6 +8,7 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 - `npm run dev`: abre o app em modo de desenvolvimento.
 - `npm run typecheck`, `npm run lint`, `npm run build`: rode os três antes de dizer que uma mudança está pronta.
 - `npm run build:win`: gera o instalador `dist/granola-local-<versão>-setup.exe`. Rodar o instalador atualiza o app instalado (Menu Iniciar e área de trabalho, sem precisar de admin). O app instalado e o `npm run dev` usam a mesma pasta de dados.
+- `npm run install:app`: gera o instalador e instala de uma vez (`scripts/install-app.mjs`). Para se o app estiver aberto; `npm run install:app -- --force` fecha o app antes.
 - Node fica em `%LOCALAPPDATA%\Programs\nodejs`; se `npm` não for encontrado no shell, adicione essa pasta ao `PATH`.
 
 ## Estrutura
@@ -42,6 +43,11 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 - Não trabalhe direto na `master`: crie uma branch por tarefa (`docs/...`, `feat/...`, `fix/...`, `bench/...`) e integre por PR.
 - Mensagens de commit em inglês, no formato `tipo: descrição` (`docs:`, `feat:`, `fix:`, `chore:`).
 - Faça commit, push, PR ou merge só quando o usuário pedir.
+- **Depois de todo merge na `master`, atualize o app instalado**, sem esperar o usuário pedir:
+  1. `git switch master` e `git pull`, para instalar exatamente o que foi aprovado.
+  2. `npm run install:app`.
+  3. Se o script parar porque o app está aberto, pergunte ao usuário antes de fechar (pode haver gravação ou transcrição em andamento) e só então rode `npm run install:app -- --force`.
+  4. Diga ao usuário que o app foi atualizado, ou por que não foi.
 
 ## Idioma
 
