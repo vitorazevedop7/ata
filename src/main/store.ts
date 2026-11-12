@@ -14,6 +14,8 @@ export interface RecordingMeta {
   id: string
   startedAt: string
   endedAt?: string
+  /** Set when the app closed or crashed before the recording was stopped. */
+  interrupted?: boolean
   audioDeletedAt?: string
   audioDeletedReason?: 'manual' | 'expired' | 'after-transcription'
   /** Set when the recording came from a file the user imported. */
