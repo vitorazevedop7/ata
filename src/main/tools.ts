@@ -10,11 +10,28 @@ export interface Tools {
   vadModel: string
 }
 
+export interface OllamaTools {
+  /** ollama.exe, or null when only an already-running server can be used. */
+  exe: string | null
+  modelsDir: string
+  model: string
+  host: string
+}
+
 const WHISPER_MODEL = 'ggml-large-v3-turbo-q5_0.bin'
 const VAD_MODEL = 'ggml-silero-v6.2.0.bin'
+const SUMMARY_MODEL = 'qwen3.5:4b'
 
 function localAppData(): string {
   return process.env.LOCALAPPDATA ?? join(app.getPath('appData'), '..', 'Local')
+}
+
+function programs(): string {
+  return join(localAppData(), 'Programs')
+}
+
+function modelsDir(): string {
+  return process.env.GRANOLA_MODELS_DIR ?? join(localAppData(), 'granola-local', 'models')
 }
 
 /**
@@ -22,28 +39,37 @@ function localAppData(): string {
  * CLAUDE.md; GRANOLA_FFMPEG, GRANOLA_WHISPER_CLI and GRANOLA_MODELS_DIR override them.
  */
 export function resolveTools(): Tools {
-  const programs = join(localAppData(), 'Programs')
-
-  const bundledFfmpeg = join(programs, 'ffmpeg', 'bin', 'ffmpeg.exe')
+  const bundledFfmpeg = join(programs(), 'ffmpeg', 'bin', 'ffmpeg.exe')
   const ffmpeg =
     process.env.GRANOLA_FFMPEG ?? (existsSync(bundledFfmpeg) ? bundledFfmpeg : 'ffmpeg')
 
   const whisperCli = process.env.GRANOLA_WHISPER_CLI
     ? [process.env.GRANOLA_WHISPER_CLI]
     : ['whisper-cuda', 'whisper-cpu']
-        .map((dir) => join(programs, dir, 'Release', 'whisper-cli.exe'))
+        .map((dir) => join(programs(), dir, 'Release', 'whisper-cli.exe'))
         .filter((path) => existsSync(path))
   if (whisperCli.length === 0) {
-    throw new Error(`whisper.cpp não encontrado em ${programs} (whisper-cuda ou whisper-cpu).`)
+    throw new Error(`whisper.cpp não encontrado em ${programs()} (whisper-cuda ou whisper-cpu).`)
   }
 
-  const modelsDir =
-    process.env.GRANOLA_MODELS_DIR ?? join(localAppData(), 'granola-local', 'models')
-  const model = join(modelsDir, WHISPER_MODEL)
-  const vadModel = join(modelsDir, VAD_MODEL)
+  const model = join(modelsDir(), WHISPER_MODEL)
+  const vadModel = join(modelsDir(), VAD_MODEL)
   for (const file of [model, vadModel]) {
     if (!existsSync(file)) throw new Error(`Modelo não encontrado: ${file}`)
   }
 
   return { ffmpeg, whisperCli, model, vadModel }
+}
+
+/** GRANOLA_OLLAMA, GRANOLA_OLLAMA_MODEL and OLLAMA_HOST override the defaults. */
+export function resolveOllama(): OllamaTools {
+  const bundled = join(programs(), 'ollama', 'ollama.exe')
+  const exe = process.env.GRANOLA_OLLAMA ?? (existsSync(bundled) ? bundled : null)
+  const host = (process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434').replace(/\/$/, '')
+  return {
+    exe,
+    modelsDir: join(modelsDir(), 'ollama'),
+    model: process.env.GRANOLA_OLLAMA_MODEL ?? SUMMARY_MODEL,
+    host: host.startsWith('http') ? host : `http://${host}`
+  }
 }
