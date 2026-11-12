@@ -1,29 +1,21 @@
-import { app, ipcMain, shell } from 'electron'
-import { appendFile, mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
+import { ipcMain, shell } from 'electron'
+import { access, appendFile, mkdir, readdir, readFile, stat, writeFile } from 'fs/promises'
 import { join } from 'path'
 import type { Channel, RecordingSummary } from '../shared/types'
-
-const CHANNELS: readonly Channel[] = ['mic', 'system']
-const ID_PATTERN = /^\d{8}-\d{6}$/
+import {
+  CHANNELS,
+  ID_PATTERN,
+  channelFile,
+  recordingDir,
+  recordingsDir,
+  transcriptFile
+} from './paths'
+import { enqueueTranscription } from './transcription'
 
 interface RecordingMeta {
   id: string
   startedAt: string
   endedAt?: string
-}
-
-function recordingsDir(): string {
-  return join(app.getPath('userData'), 'recordings')
-}
-
-function recordingDir(id: string): string {
-  if (!ID_PATTERN.test(id)) throw new Error(`invalid recording id: ${id}`)
-  return join(recordingsDir(), id)
-}
-
-function channelFile(id: string, channel: Channel): string {
-  if (!CHANNELS.includes(channel)) throw new Error(`invalid channel: ${channel}`)
-  return join(recordingDir(id), `${channel}.webm`)
 }
 
 function newId(now: Date): string {
@@ -42,6 +34,15 @@ async function fileSize(path: string): Promise<number> {
   }
 }
 
+async function exists(path: string): Promise<boolean> {
+  try {
+    await access(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
 async function summarize(id: string): Promise<RecordingSummary | null> {
   try {
     const meta = JSON.parse(
@@ -49,7 +50,13 @@ async function summarize(id: string): Promise<RecordingSummary | null> {
     ) as RecordingMeta
     const bytes = { mic: 0, system: 0 }
     for (const channel of CHANNELS) bytes[channel] = await fileSize(channelFile(id, channel))
-    return { id, startedAt: meta.startedAt, endedAt: meta.endedAt ?? null, bytes }
+    return {
+      id,
+      startedAt: meta.startedAt,
+      endedAt: meta.endedAt ?? null,
+      bytes,
+      hasTranscript: await exists(transcriptFile(id))
+    }
   } catch {
     return null
   }
@@ -77,6 +84,7 @@ export function registerRecordingIpc(): void {
     const meta = JSON.parse(await readFile(metaPath, 'utf8')) as RecordingMeta
     meta.endedAt = new Date().toISOString()
     await writeFile(metaPath, JSON.stringify(meta, null, 2))
+    enqueueTranscription(id)
     return summarize(id)
   })
 

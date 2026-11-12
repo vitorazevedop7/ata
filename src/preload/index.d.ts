@@ -1,9 +1,10 @@
-import type { RecordingApi } from '../shared/types'
+import type { RecordingApi, TranscriptionApi } from '../shared/types'
 
 declare global {
   interface Window {
     api: {
       recording: RecordingApi
+      transcription: TranscriptionApi
     }
   }
 }
