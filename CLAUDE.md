@@ -27,7 +27,9 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 
 ## Interface
 
-- Siga a skill `.claude/skills/apple-design` (fonte do sistema, espaçamento de letras por tamanho, barra translúcida, resposta no clique, menus que nascem do botão, confirmação só para ações sem volta, `prefers-reduced-motion`/`-transparency`/`-contrast`).
+- Identidade visual em `docs/design.md`: livro de atas e bloco de taquigrafia (lateral azul-marinho, página em papel cinza-azulado, linha vermelha separando "Outros" e "Eu"). Vermelho fora da linha só significa "gravando".
+- Títulos em Bricolage Grotesque (empacotada pelo `@fontsource-variable`, sem CDN); o resto na fonte do sistema.
+- Continue valendo da skill `.claude/skills/apple-design`: resposta no clique, menus que nascem do botão, confirmação só para ações sem volta, `prefers-reduced-motion`/`-transparency`/`-contrast`. Ações repetidas (selecionar na lista, trocar de aba) não animam.
 - Cores e sombras ficam em variáveis no topo de `src/renderer/src/assets/main.css`, com versão clara e escura.
 - Textos da interface em português, diretos e específicos ("Transcrever e apagar áudio", não "Continuar").
 

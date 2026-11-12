@@ -29,11 +29,12 @@ export function CheckIcon({ className }: IconProps): React.JSX.Element {
   )
 }
 
-export function SparkleIcon({ className }: IconProps): React.JSX.Element {
+/** A page with written lines: stands for the summary ("a ata"). */
+export function NoteIcon({ className }: IconProps): React.JSX.Element {
   return (
     <svg {...base} className={className}>
-      <path d="M8 2.5l1.3 3.2 3.2 1.3-3.2 1.3L8 11.5 6.7 8.3 3.5 7l3.2-1.3z" />
-      <path d="M12.5 11.5l.5 1.2 1.2.5-1.2.5-.5 1.2-.5-1.2-1.2-.5 1.2-.5z" />
+      <path d="M4 2.5h8a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" />
+      <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" />
     </svg>
   )
 }
@@ -62,10 +63,29 @@ export function ChevronLeftIcon({ className }: IconProps): React.JSX.Element {
   )
 }
 
-export function WaveIcon({ className }: IconProps): React.JSX.Element {
+export function ChevronDownIcon({ className }: IconProps): React.JSX.Element {
   return (
     <svg {...base} className={className}>
-      <path d="M2.5 8h1M5.5 5v6M8 3v10M10.5 5.5v5M13 7.5v1" />
+      <path d="M4 6l4 4 4-4" />
+    </svg>
+  )
+}
+
+/**
+ * The app's mark: a stenographer's pad seen from above. The red rule splits the
+ * page, with lines of speech on each side: "Outros" on the left, "Eu" on the right.
+ */
+export function BrandMark({ className }: IconProps): React.JSX.Element {
+  return (
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden className={className}>
+      <rect x="1" y="1" width="20" height="20" rx="5" fill="var(--cover-ink)" />
+      <path d="M11 4v14" stroke="var(--rec)" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M4.5 7h4M5.5 10h3M13.5 12.5h4M13.5 15.5h2.5"
+        stroke="var(--cover)"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
