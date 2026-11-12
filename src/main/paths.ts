@@ -30,3 +30,7 @@ export function transcriptFile(id: string): string {
 export function summaryFile(id: string): string {
   return join(recordingDir(id), 'summary.json')
 }
+
+export function chatFile(id: string): string {
+  return join(recordingDir(id), 'chat.json')
+}

@@ -50,9 +50,23 @@ export interface Summary {
   openQuestions: string[]
 }
 
-export type JobKind = 'transcribe' | 'summarize'
+export interface ChatEntry {
+  question: string
+  /** Plain text; cites transcript times as [mm:ss] or [h:mm:ss]. */
+  answer: string
+  askedAt: string
+  model: string
+}
 
-export type JobStage = 'queued' | 'converting' | 'transcribing' | 'summarizing' | 'done' | 'error'
+export interface Chat {
+  version: 1
+  entries: ChatEntry[]
+}
+
+export type JobKind = 'transcribe' | 'summarize' | 'ask'
+
+export type JobStage =
+  'queued' | 'converting' | 'transcribing' | 'summarizing' | 'answering' | 'done' | 'error'
 
 export interface JobStatus {
   id: string
@@ -62,6 +76,10 @@ export interface JobStatus {
   /** 0..100 when known. */
   percent?: number
   error?: string
+  /** For 'ask': the question being answered. */
+  question?: string
+  /** For 'ask': the answer so far, while it streams in. */
+  partial?: string
 }
 
 export interface TranscribeOptions {
@@ -117,6 +135,10 @@ export interface ImportApi {
 export interface JobsApi {
   transcribe(id: string, options: TranscribeOptions): Promise<void>
   summarize(id: string): Promise<void>
+  /** Asks a question about the recording; the answer is saved to chat.json. */
+  ask(id: string, question: string): Promise<void>
+  /** Drops a queued question or stops the one being answered. */
+  cancelAsk(id: string): Promise<void>
   statuses(): Promise<JobStatus[]>
   /** Subscribes to status changes; returns the unsubscribe function. */
   onStatus(listener: (status: JobStatus) => void): () => void
@@ -125,6 +147,7 @@ export interface JobsApi {
 export interface ResultsApi {
   transcript(id: string): Promise<Transcript | null>
   summary(id: string): Promise<Summary | null>
+  chat(id: string): Promise<ChatEntry[]>
 }
 
 export interface SearchHit {

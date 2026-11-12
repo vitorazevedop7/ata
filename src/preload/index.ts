@@ -41,6 +41,8 @@ const jobs: JobsApi = {
   transcribe: (id: string, options: TranscribeOptions) =>
     ipcRenderer.invoke('jobs:transcribe', id, options),
   summarize: (id: string) => ipcRenderer.invoke('jobs:summarize', id),
+  ask: (id: string, question: string) => ipcRenderer.invoke('jobs:ask', id, question),
+  cancelAsk: (id: string) => ipcRenderer.invoke('jobs:cancel-ask', id),
   statuses: () => ipcRenderer.invoke('jobs:statuses'),
   onStatus: (listener) => {
     const handler = (_event: IpcRendererEvent, status: JobStatus): void => listener(status)
@@ -51,7 +53,8 @@ const jobs: JobsApi = {
 
 const results: ResultsApi = {
   transcript: (id: string) => ipcRenderer.invoke('results:transcript', id),
-  summary: (id: string) => ipcRenderer.invoke('results:summary', id)
+  summary: (id: string) => ipcRenderer.invoke('results:summary', id),
+  chat: (id: string) => ipcRenderer.invoke('results:chat', id)
 }
 
 const search: SearchApi = {
