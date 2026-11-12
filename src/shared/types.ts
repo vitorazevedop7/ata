@@ -1,11 +1,19 @@
 export type Channel = 'mic' | 'system'
 
+/** Audio files are deleted this many days after a recording starts. */
+export const AUDIO_RETENTION_DAYS = 7
+
 export interface RecordingSummary {
   id: string
   startedAt: string
   endedAt: string | null
   bytes: Record<Channel, number>
+  hasAudio: boolean
+  audioDeletedAt: string | null
+  /** When the audio will be deleted automatically. */
+  audioExpiresAt: string
   hasTranscript: boolean
+  hasSummary: boolean
 }
 
 export interface TranscriptSegment {
@@ -23,15 +31,40 @@ export interface Transcript {
   segments: TranscriptSegment[]
 }
 
-export type TranscriptionStage = 'queued' | 'converting' | 'transcribing' | 'done' | 'error'
+export interface ActionItem {
+  task: string
+  /** "Eu", "Outros" or null when the transcript doesn't make it clear. */
+  owner: string | null
+}
 
-export interface TranscriptionStatus {
+export interface Summary {
+  version: 1
+  createdAt: string
+  model: string
+  overview: string
+  keyPoints: string[]
+  decisions: string[]
+  actionItems: ActionItem[]
+  openQuestions: string[]
+}
+
+export type JobKind = 'transcribe' | 'summarize'
+
+export type JobStage = 'queued' | 'converting' | 'transcribing' | 'summarizing' | 'done' | 'error'
+
+export interface JobStatus {
   id: string
-  stage: TranscriptionStage
+  kind: JobKind
+  stage: JobStage
   channel?: Channel
-  /** 0..100 while transcribing. */
+  /** 0..100 when known. */
   percent?: number
   error?: string
+}
+
+export interface TranscribeOptions {
+  /** Delete the audio files once the transcript is saved. */
+  deleteAudio: boolean
 }
 
 export interface RecordingApi {
@@ -39,13 +72,19 @@ export interface RecordingApi {
   appendChunk(id: string, channel: Channel, data: ArrayBuffer): Promise<void>
   stop(id: string): Promise<RecordingSummary | null>
   list(): Promise<RecordingSummary[]>
+  deleteAudio(id: string): Promise<void>
   openFolder(id?: string): Promise<void>
 }
 
-export interface TranscriptionApi {
-  start(id: string): Promise<void>
-  get(id: string): Promise<Transcript | null>
-  statuses(): Promise<TranscriptionStatus[]>
+export interface JobsApi {
+  transcribe(id: string, options: TranscribeOptions): Promise<void>
+  summarize(id: string): Promise<void>
+  statuses(): Promise<JobStatus[]>
   /** Subscribes to status changes; returns the unsubscribe function. */
-  onStatus(listener: (status: TranscriptionStatus) => void): () => void
+  onStatus(listener: (status: JobStatus) => void): () => void
+}
+
+export interface ResultsApi {
+  transcript(id: string): Promise<Transcript | null>
+  summary(id: string): Promise<Summary | null>
 }

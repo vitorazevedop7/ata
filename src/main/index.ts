@@ -1,17 +1,26 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, clipboard, ipcMain, shell, BrowserWindow, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerCapture } from './capture'
+import { registerJobsIpc } from './jobs'
 import { registerRecordingIpc } from './recordings'
-import { registerTranscriptionIpc } from './transcription'
+import { startRetention } from './retention'
+
+// The installed app is named "Granola Local" while dev runs as "granola-local";
+// pin one data folder so both see the same recordings.
+app.setPath('userData', join(app.getPath('appData'), 'granola-local'))
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 720,
-    height: 640,
+    width: 980,
+    height: 760,
+    minWidth: 420,
+    minHeight: 520,
     title: 'Granola Local',
+    // Matches the page background so the window never flashes white on open.
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7',
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -55,7 +64,9 @@ app.whenReady().then(() => {
 
   registerCapture()
   registerRecordingIpc()
-  registerTranscriptionIpc()
+  registerJobsIpc()
+  startRetention()
+  ipcMain.handle('app:copy', (_event, text: string) => clipboard.writeText(String(text)))
 
   createWindow()
 
