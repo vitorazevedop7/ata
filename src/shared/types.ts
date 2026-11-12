@@ -80,6 +80,8 @@ export interface JobStatus {
   question?: string
   /** For 'ask': the answer so far, while it streams in. */
   partial?: string
+  /** For 'transcribe': the audio is deleted once the transcript is saved. */
+  deleteAudio?: boolean
 }
 
 export interface TranscribeOptions {

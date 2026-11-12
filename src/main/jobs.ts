@@ -47,11 +47,25 @@ export function isBusy(id: string): boolean {
   return false
 }
 
+function publishTranscribe(job: Job, status: JobStatus): void {
+  publish({ ...status, deleteAudio: job.options?.deleteAudio === true })
+}
+
+/** A new transcript is summarized right away, ahead of anything else waiting. */
+async function summarizeAfterTranscription(id: string): Promise<void> {
+  const transcript = await readJson<Transcript>(transcriptFile(id))
+  if (!transcript || transcript.segments.length === 0) return
+  if (statuses.has(key(id, 'summarize'))) return
+  queue.unshift({ id, kind: 'summarize' })
+  publish({ id, kind: 'summarize', stage: 'queued' })
+}
+
 async function execute(job: Job, signal: AbortSignal): Promise<void> {
   const { id, kind, question } = job
   if (kind === 'transcribe') {
-    await transcribe(id, (progress) => publish({ id, kind, ...progress }))
+    await transcribe(id, (progress) => publishTranscribe(job, { id, kind, ...progress }))
     if (job.options?.deleteAudio) await deleteAudio(id, 'after-transcription')
+    await summarizeAfterTranscription(id)
   } else if (kind === 'ask') {
     publish({ id, kind, stage: 'answering', question })
     await ask(id, question ?? '', signal, (partial) =>
@@ -121,16 +135,31 @@ function cancelQuestion(id: string): void {
 
 export function enqueue(id: string, kind: JobKind, options?: TranscribeOptions): void {
   recordingDir(id) // validates the id
-  const current = statuses.get(key(id, kind))
-  if (current && current.stage !== 'error') {
-    // Already queued: a later "and delete audio" request still applies.
-    const queued = queue.find((job) => job.id === id && job.kind === kind)
-    if (queued && options?.deleteAudio) queued.options = options
+  const status = statuses.get(key(id, kind))
+  if (status && status.stage !== 'error') {
+    // Already queued or running: a later "and delete audio" request still applies.
+    const pending =
+      queue.find((job) => job.id === id && job.kind === kind) ??
+      (current?.job.id === id && current.job.kind === kind ? current.job : undefined)
+    if (pending && kind === 'transcribe' && options?.deleteAudio && !pending.options?.deleteAudio) {
+      pending.options = options
+      publishTranscribe(pending, status)
+    }
     return
   }
-  queue.push({ id, kind, options })
-  publish({ id, kind, stage: 'queued' })
+  const job: Job = { id, kind, options }
+  queue.push(job)
+  if (kind === 'transcribe') publishTranscribe(job, { id, kind, stage: 'queued' })
+  else publish({ id, kind, stage: 'queued' })
   void pump()
+}
+
+/**
+ * Runs the whole pipeline for a recording that just ended (stopped, imported or
+ * closed after a crash): transcription, then the summary.
+ */
+export function processRecording(id: string): void {
+  enqueue(id, 'transcribe', { deleteAudio: false })
 }
 
 async function readJson<T>(path: string): Promise<T | null> {
