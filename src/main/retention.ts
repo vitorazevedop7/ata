@@ -1,5 +1,6 @@
 import { BrowserWindow } from 'electron'
 import { isBusy } from './jobs'
+import { recoverInterruptedRecordings } from './recordings'
 import { audioExpiresAt, deleteAudio, listIds, readMeta, summarize } from './store'
 
 const HOUR_MS = 60 * 60 * 1000
@@ -26,7 +27,9 @@ async function purgeExpiredAudio(): Promise<number> {
 }
 
 async function sweep(): Promise<void> {
-  if ((await purgeExpiredAudio()) > 0) {
+  // First close recordings cut short by a crash, so their audio can expire too.
+  const recovered = await recoverInterruptedRecordings().catch(() => 0)
+  if (recovered + (await purgeExpiredAudio()) > 0) {
     for (const window of BrowserWindow.getAllWindows()) {
       window.webContents.send('recordings:changed')
     }
