@@ -9,6 +9,7 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 - `npm run typecheck`, `npm run lint`, `npm run build`: rode os três antes de dizer que uma mudança está pronta.
 - `npm run build:win`: gera o instalador `dist/granola-local-<versão>-setup.exe`. Rodar o instalador atualiza o app instalado (Menu Iniciar e área de trabalho, sem precisar de admin). O app instalado e o `npm run dev` usam a mesma pasta de dados, desde que os dois sejam abertos fora do Claude (veja "Ambiente local").
 - `npm run install:app`: gera o instalador e instala de uma vez (`scripts/install-app.mjs`). Para se o app estiver aberto; `npm run install:app -- --force` fecha o app antes.
+  - O Controle Inteligente de Aplicativos do Windows às vezes bloqueia o instalador novo (sem assinatura). Nesse caso o script mantém o executável já instalado e troca só `resources\app.asar` (o anterior fica em `app.asar.bak`), desde que nada além do código do app tenha mudado; se mudou (outra versão do Electron, por exemplo), ele para e pede para rodar o instalador pelo Explorador de Arquivos.
 - Node fica em `%LOCALAPPDATA%\Programs\nodejs`; se `npm` não for encontrado no shell, adicione essa pasta ao `PATH`.
 
 ## Estrutura
