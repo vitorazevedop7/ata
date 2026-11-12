@@ -199,3 +199,94 @@ li {
     grid-column: 1 / -1;
   }
 }
+
+.recordings li {
+  grid-template-columns: 1fr auto auto;
+}
+
+.recording-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.recording-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.status.transcribing,
+.status.converting,
+.status.queued {
+  color: var(--accent);
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+}
+
+.link.muted {
+  color: var(--muted);
+}
+
+.transcript-meta {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.segments {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: 52px 56px 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  line-height: 1.45;
+  align-items: start;
+}
+
+.segment-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.segment-speaker {
+  font-weight: 600;
+}
+
+.segment.mic .segment-speaker {
+  color: var(--accent);
+}
+
+.segment.system .segment-speaker {
+  color: var(--muted);
+}
+
+@media (max-width: 520px) {
+  .recordings li {
+    grid-template-columns: 1fr auto;
+  }
+  .actions {
+    grid-column: 1 / -1;
+  }
+  .segment {
+    grid-template-columns: 44px 1fr;
+  }
+  .segment-text {
+    grid-column: 1 / -1;
+  }
+}

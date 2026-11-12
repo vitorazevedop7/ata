@@ -4,6 +4,7 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerCapture } from './capture'
 import { registerRecordingIpc } from './recordings'
+import { registerTranscriptionIpc } from './transcription'
 
 function createWindow(): void {
   // Create the browser window.
@@ -54,6 +55,7 @@ app.whenReady().then(() => {
 
   registerCapture()
   registerRecordingIpc()
+  registerTranscriptionIpc()
 
   createWindow()
 

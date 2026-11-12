@@ -11,11 +11,11 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 
 ## Estrutura
 
-- `src/main`: processo principal (captura de áudio, gravações em disco via IPC).
+- `src/main`: processo principal. `capture.ts` (microfone + loopback), `recordings.ts` (gravações em disco via IPC), `transcription.ts` (fila ffmpeg → whisper.cpp), `tools.ts` (onde ficam ffmpeg, whisper e modelos), `paths.ts`.
 - `src/preload`: ponte `window.api` entre o app e o processo principal.
 - `src/renderer`: interface React.
 - `src/shared`: tipos usados pelos três.
-- Gravações ficam em `%APPDATA%\granola-local\recordings\<id>\` (`mic.webm`, `system.webm`, `meta.json`).
+- Gravações ficam em `%APPDATA%\granola-local\recordings\<id>\` (`mic.webm`, `system.webm`, `meta.json` e, depois de transcrita, `transcript.json`).
 
 ## Sem marca de Claude
 
@@ -44,4 +44,5 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
 
 - Node.js, ffmpeg, whisper.cpp (`whisper-cpu` e `whisper-cuda`) e Ollama ficam em `%LOCALAPPDATA%\Programs`.
 - Modelos ficam em `%LOCALAPPDATA%\granola-local\models` (Ollama com `OLLAMA_MODELS` apontando para `models\ollama`).
-- Transcrição: use a build CUDA com modo guloso (`-bs 1 -bo 1`); o beam search padrão é ~15× mais lento nesta máquina.
+- Modelos usados: `ggml-large-v3-turbo-q5_0.bin` (Whisper) e `ggml-silero-v6.2.0.bin` (detector de voz).
+- Transcrição: build CUDA com `-l auto -bs 1 -bo 1 -mc 0 --vad`. O beam search padrão é ~15× mais lento nesta máquina; sem `--vad`, o Whisper inventa frases repetidas nos trechos de silêncio; idioma fixo estraga áudio em outra língua.
