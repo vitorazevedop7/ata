@@ -19,6 +19,7 @@ import {
   summaryToText,
   transcriptToText
 } from '../format'
+import { AskSection } from './AskSection'
 import { CopyButton, DeleteAudioButton, Progress, TranscribeMenu } from './controls'
 import { ChevronLeftIcon, FolderIcon, NoteIcon } from './icons'
 
@@ -42,6 +43,20 @@ function segmentAt(segments: TranscriptSegment[], ms: number): number {
   })
   if (bestRunning !== -1) return bestRunning
   return best === -1 ? 0 : best
+}
+
+/**
+ * Index of the segment whose displayed time (rounded down to the second) is
+ * closest to `ms`, for times cited by the model in its answers.
+ */
+function segmentNear(segments: TranscriptSegment[], ms: number): number {
+  let index = 0
+  let best = Infinity
+  segments.forEach((segment, i) => {
+    const distance = Math.abs(Math.floor(segment.startMs / 1000) * 1000 - ms)
+    if (distance < best) [index, best] = [i, distance]
+  })
+  return index
 }
 
 /** Silence that starts a new paragraph in a single-speaker transcript. */
@@ -206,6 +221,7 @@ export function RecordingDetail({
   live,
   transcribeStatus,
   summarizeStatus,
+  askStatus,
   onBack,
   onError,
   onChanged,
@@ -218,6 +234,7 @@ export function RecordingDetail({
   live: boolean
   transcribeStatus?: JobStatus
   summarizeStatus?: JobStatus
+  askStatus?: JobStatus
   onBack: () => void
   onError: (message: string) => void
   /** Called after an action here changes the recording on disk. */
@@ -245,6 +262,13 @@ export function RecordingDetail({
       setTab('transcript')
       setFlash({ index: segmentAt(transcript.segments, focusMs) })
     }
+  }
+
+  // Times cited in an answer: jump to the line shown with that time.
+  const showAt = (ms: number): void => {
+    if (!transcript || transcript.segments.length === 0) return
+    setTab('transcript')
+    setFlash({ index: segmentNear(transcript.segments, ms) })
   }
 
   useEffect(() => {
@@ -389,6 +413,14 @@ export function RecordingDetail({
                       </div>
                     </div>
                   )
+                )}
+                {transcript && transcript.segments.length > 0 && (
+                  <AskSection
+                    recordingId={item.id}
+                    revision={revision}
+                    status={askStatus}
+                    onShowAt={showAt}
+                  />
                 )}
               </>
             ) : transcript ? (

@@ -116,6 +116,10 @@ export function describeJob(status: JobStatus, imported = false): string {
   const channel =
     status.channel && !imported ? (status.channel === 'mic' ? ' (Eu)' : ' (Outros)') : ''
   const percent = status.percent !== undefined ? ` ${status.percent}%` : ''
+  if (status.kind === 'ask') {
+    if (status.stage === 'queued') return 'Na fila para responder'
+    return status.stage === 'error' ? 'A resposta falhou' : 'Respondendo'
+  }
   switch (status.stage) {
     case 'queued':
       return status.kind === 'transcribe' ? 'Na fila para transcrever' : 'Na fila para resumir'
