@@ -2,10 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Channel, JobKind, JobStatus, RecordingSummary, SearchHit } from '../../shared/types'
 import { Progress, TranscribeMenu } from './components/controls'
 import { BrandMark } from './components/icons'
+import { DropOverlay, ImportButton, ImportStatus } from './components/ImportControl'
 import { RecordingDetail } from './components/RecordingDetail'
 import { SearchField, SearchResults } from './components/Search'
 import { dayGroup, describeJob, formatClock, formatLength, formatRowTitle } from './format'
 import { type ActiveRecording, CaptureError, startRecording } from './recorder'
+import { useImport } from './useImport'
 
 const jobKey = (id: string, kind: JobKind): string => `${kind}:${id}`
 
@@ -31,8 +33,9 @@ function rowState(
 ): { state: RowState; label: string } {
   if (!item.endedAt)
     return { state: live ? 'live' : 'error', label: live ? 'Gravando agora' : 'Incompleta' }
-  if (status?.stage === 'error') return { state: 'error', label: describeJob(status) }
-  if (status) return { state: 'working', label: describeJob(status) }
+  const imported = item.importedFileName !== null
+  if (status?.stage === 'error') return { state: 'error', label: describeJob(status, imported) }
+  if (status) return { state: 'working', label: describeJob(status, imported) }
   if (item.hasSummary) return { state: 'summary', label: 'Resumida' }
   if (item.hasTranscript) return { state: 'transcript', label: 'Transcrita' }
   return item.hasAudio
@@ -71,6 +74,16 @@ function App(): React.JSX.Element {
   const refresh = useCallback(async () => {
     setRecordings(await window.api.recording.list())
   }, [])
+
+  const onImported = useCallback(
+    (ids: string[]) => {
+      setSelectedId(ids[ids.length - 1])
+      setView('detail')
+      void refresh()
+    },
+    [refresh]
+  )
+  const imports = useImport({ onImported, onError: setError })
 
   useEffect(() => {
     let cancelled = false
@@ -177,7 +190,9 @@ function App(): React.JSX.Element {
         <header className="cover-head">
           <BrandMark className="brand-mark" />
           <span className="brand-name">Granola Local</span>
+          <ImportButton busy={imports.progress !== null} onClick={imports.pick} />
         </header>
+        {imports.progress && <ImportStatus progress={imports.progress} />}
 
         <section className={`recorder${active ? ' live' : ''}`} aria-label="Gravação">
           <div className="recorder-live" aria-hidden={!active} inert={!active}>
@@ -221,6 +236,7 @@ function App(): React.JSX.Element {
                 Clique em Gravar durante uma reunião ou ligação. O microfone vira “Eu” e o som do
                 computador vira “Outros”.
               </p>
+              <p>Para uma conversa gravada em outro lugar, use Importar ou solte o arquivo aqui.</p>
             </div>
           ) : (
             groupByDay(recordings).map(([label, items]) => (
@@ -251,6 +267,11 @@ function App(): React.JSX.Element {
                             <span className="row-title">{formatRowTitle(item.startedAt)}</span>
                             <span className="row-length">{formatLength(item) ?? ''}</span>
                           </span>
+                          {item.importedFileName && (
+                            <span className="row-file" title={item.importedFileName}>
+                              {item.importedFileName}
+                            </span>
+                          )}
                           <span className="row-state" data-state={state}>
                             <span className="state-mark" aria-hidden />
                             {stateLabel}
@@ -324,6 +345,7 @@ function App(): React.JSX.Element {
           </div>
         )}
       </main>
+      <DropOverlay visible={imports.dragging} />
     </div>
   )
 }
