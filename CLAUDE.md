@@ -3,6 +3,20 @@
 App desktop pessoal, offline-first, que grava reuniões, transcreve e gera resumo com IA
 local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benchmark.md`.
 
+## Comandos
+
+- `npm run dev`: abre o app em modo de desenvolvimento.
+- `npm run typecheck`, `npm run lint`, `npm run build`: rode os três antes de dizer que uma mudança está pronta.
+- Node fica em `%LOCALAPPDATA%\Programs\nodejs`; se `npm` não for encontrado no shell, adicione essa pasta ao `PATH`.
+
+## Estrutura
+
+- `src/main`: processo principal (captura de áudio, gravações em disco via IPC).
+- `src/preload`: ponte `window.api` entre o app e o processo principal.
+- `src/renderer`: interface React.
+- `src/shared`: tipos usados pelos três.
+- Gravações ficam em `%APPDATA%\granola-local\recordings\<id>\` (`mic.webm`, `system.webm`, `meta.json`).
+
 ## Sem marca de Claude
 
 - Nunca adicione `Co-Authored-By: Claude ...` nem qualquer trailer de coautoria de IA em commits.
