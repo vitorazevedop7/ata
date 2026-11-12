@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Channel, JobKind, JobStatus, RecordingSummary } from '../../shared/types'
 import { Progress, TranscribeMenu } from './components/controls'
-import { WaveIcon } from './components/icons'
+import { BrandMark } from './components/icons'
 import { RecordingDetail } from './components/RecordingDetail'
-import { describeJob, durationOf, formatClock, formatWhen } from './format'
+import { dayGroup, describeJob, formatClock, formatLength, formatRowTitle } from './format'
 import { type ActiveRecording, CaptureError, startRecording } from './recorder'
 
 const jobKey = (id: string, kind: JobKind): string => `${kind}:${id}`
@@ -21,12 +21,34 @@ function Meter({ label, level }: { label: string; level: number }): React.JSX.El
   )
 }
 
-function rowStatus(item: RecordingSummary, live: boolean, status?: JobStatus): string {
-  if (!item.endedAt) return live ? 'Gravando agora' : 'Incompleta'
-  if (status) return describeJob(status)
-  if (item.hasSummary) return 'Resumida'
-  if (item.hasTranscript) return 'Transcrita'
-  return item.hasAudio ? 'Não transcrita' : 'Áudio apagado'
+type RowState = 'live' | 'working' | 'error' | 'summary' | 'transcript' | 'pending' | 'gone'
+
+function rowState(
+  item: RecordingSummary,
+  live: boolean,
+  status?: JobStatus
+): { state: RowState; label: string } {
+  if (!item.endedAt)
+    return { state: live ? 'live' : 'error', label: live ? 'Gravando agora' : 'Incompleta' }
+  if (status?.stage === 'error') return { state: 'error', label: describeJob(status) }
+  if (status) return { state: 'working', label: describeJob(status) }
+  if (item.hasSummary) return { state: 'summary', label: 'Resumida' }
+  if (item.hasTranscript) return { state: 'transcript', label: 'Transcrita' }
+  return item.hasAudio
+    ? { state: 'pending', label: 'Não transcrita' }
+    : { state: 'gone', label: 'Áudio apagado' }
+}
+
+/** Splits the (newest-first) list into consecutive day sections. */
+function groupByDay(items: RecordingSummary[]): [string, RecordingSummary[]][] {
+  const groups: [string, RecordingSummary[]][] = []
+  for (const item of items) {
+    const label = dayGroup(item.startedAt)
+    const last = groups[groups.length - 1]
+    if (last && last[0] === label) last[1].push(item)
+    else groups.push([label, [item]])
+  }
+  return groups
 }
 
 function App(): React.JSX.Element {
@@ -130,122 +152,147 @@ function App(): React.JSX.Element {
   const selected = recordings.find((item) => item.id === selectedId) ?? null
 
   return (
-    <div className="shell">
-      <header className="toolbar">
-        <div className="brand">
-          <WaveIcon className="brand-icon" />
-          <span>Granola Local</span>
-        </div>
-        <div className="toolbar-actions">
-          {active && (
-            <span className="rec-clock" aria-live="off">
-              <span className="rec-dot" aria-hidden />
-              {formatClock(elapsed)}
-            </span>
-          )}
+    <div className="shell" data-view={view}>
+      <aside className="cover" aria-label="Gravações">
+        <header className="cover-head">
+          <BrandMark className="brand-mark" />
+          <span className="brand-name">Granola Local</span>
+        </header>
+
+        <section className={`recorder${active ? ' live' : ''}`} aria-label="Gravação">
+          <div className="recorder-live" aria-hidden={!active} inert={!active}>
+            <div className="recorder-live-inner">
+              <p className="recorder-clock" aria-live="off">
+                <span className="rec-dot" aria-hidden />
+                {formatClock(elapsed)}
+              </p>
+              <Meter label="Eu" level={levels.mic} />
+              <Meter label="Outros" level={levels.system} />
+              <p className="recorder-note">
+                Avise as outras pessoas de que a conversa está sendo gravada.
+              </p>
+            </div>
+          </div>
           <button
             className={`rec-button${active ? ' recording' : ''}`}
             onClick={active ? onStop : onStart}
             disabled={busy}
           >
             <span className="rec-glyph" aria-hidden />
-            {active ? 'Parar' : 'Gravar'}
+            {active ? 'Parar gravação' : 'Gravar'}
           </button>
-        </div>
-      </header>
+        </section>
 
-      <div className={`live-panel${active ? ' open' : ''}`} aria-hidden={!active}>
-        <div className="live-inner">
-          <Meter label="Eu" level={levels.mic} />
-          <Meter label="Outros" level={levels.system} />
-          <p className="caption">Avise as outras pessoas de que a conversa está sendo gravada.</p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="banner" role="alert">
-          <span>{error}</span>
-          <button className="btn plain" onClick={() => setError(null)}>
-            Fechar
-          </button>
-        </div>
-      )}
-
-      <div className="split" data-view={view}>
-        <aside className="library" aria-label="Gravações">
-          <h1 className="library-title">Gravações</h1>
+        <nav className="library">
           {recordings.length === 0 ? (
-            <div className="empty">
-              <p className="empty-title">Nenhuma gravação ainda</p>
-              <p className="caption">
+            <div className="library-empty">
+              <p className="library-empty-title">Nenhuma gravação ainda</p>
+              <p>
                 Clique em Gravar durante uma reunião ou ligação. O microfone vira “Eu” e o som do
                 computador vira “Outros”.
               </p>
             </div>
           ) : (
-            <ul className="rows">
-              {recordings.map((item) => {
-                const status =
-                  statuses[jobKey(item.id, 'transcribe')] ?? statuses[jobKey(item.id, 'summarize')]
-                const working = status && status.stage !== 'error'
-                const canTranscribe =
-                  !item.hasTranscript && item.hasAudio && !!item.endedAt && !working
-                return (
-                  <li key={item.id} className={item.id === selectedId ? 'selected' : undefined}>
-                    <button
-                      className="row"
-                      aria-current={item.id === selectedId}
-                      onClick={() => select(item.id)}
-                    >
-                      <span className="row-title">{formatWhen(item.startedAt)}</span>
-                      <span className={`row-sub${status?.stage === 'error' ? ' error' : ''}`}>
-                        {durationOf(item) ?? '—'} ·{' '}
-                        {rowStatus(item, active?.id === item.id, status)}
-                      </span>
-                      {working && (
-                        <span className="row-progress">
-                          <Progress label="" percent={status.percent} />
-                        </span>
-                      )}
-                    </button>
-                    {canTranscribe && item.id !== selectedId && (
-                      <div className="row-action">
-                        <TranscribeMenu
-                          className="btn small"
-                          onTranscribe={(deleteAudio) =>
-                            void window.api.jobs.transcribe(item.id, { deleteAudio })
-                          }
-                        />
-                      </div>
-                    )}
-                  </li>
-                )
-              })}
-            </ul>
+            groupByDay(recordings).map(([label, items]) => (
+              <section key={label} className="day">
+                <h2 className="day-label">{label}</h2>
+                <ul className="rows">
+                  {items.map((item) => {
+                    const status =
+                      statuses[jobKey(item.id, 'transcribe')] ??
+                      statuses[jobKey(item.id, 'summarize')]
+                    const working = status && status.stage !== 'error'
+                    const { state, label: stateLabel } = rowState(
+                      item,
+                      active?.id === item.id,
+                      status
+                    )
+                    const canTranscribe =
+                      !item.hasTranscript && item.hasAudio && !!item.endedAt && !working
+                    const isSelected = item.id === selectedId
+                    return (
+                      <li key={item.id} className={isSelected ? 'selected' : undefined}>
+                        <button
+                          className="row"
+                          aria-current={isSelected}
+                          onClick={() => select(item.id)}
+                        >
+                          <span className="row-line">
+                            <span className="row-title">{formatRowTitle(item.startedAt)}</span>
+                            <span className="row-length">{formatLength(item) ?? ''}</span>
+                          </span>
+                          <span className="row-state" data-state={state}>
+                            <span className="state-mark" aria-hidden />
+                            {stateLabel}
+                          </span>
+                          {working && (
+                            <span className="row-progress">
+                              <Progress label="" percent={status.percent} />
+                            </span>
+                          )}
+                        </button>
+                        {canTranscribe && !isSelected && (
+                          <div className="row-action">
+                            <TranscribeMenu
+                              className="btn small"
+                              onTranscribe={(deleteAudio) =>
+                                void window.api.jobs.transcribe(item.id, { deleteAudio })
+                              }
+                            />
+                          </div>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            ))
           )}
-        </aside>
+        </nav>
+      </aside>
 
-        <main className="detail">
-          {selected ? (
-            <RecordingDetail
-              key={selected.id}
-              item={selected}
-              revision={revisions[selected.id] ?? 0}
-              live={active?.id === selected.id}
-              transcribeStatus={statuses[jobKey(selected.id, 'transcribe')]}
-              summarizeStatus={statuses[jobKey(selected.id, 'summarize')]}
-              onBack={() => setView('list')}
-              onError={setError}
-              onChanged={() => void refresh()}
-            />
-          ) : (
-            <div className="empty center">
-              <p className="empty-title">Selecione uma gravação</p>
-              <p className="caption">A transcrição e o resumo aparecem aqui.</p>
-            </div>
-          )}
-        </main>
-      </div>
+      <main className="page">
+        {error && (
+          <div className="banner" role="alert">
+            <span>{error}</span>
+            <button className="btn plain" onClick={() => setError(null)}>
+              Fechar
+            </button>
+          </div>
+        )}
+        {selected ? (
+          <RecordingDetail
+            key={selected.id}
+            item={selected}
+            revision={revisions[selected.id] ?? 0}
+            live={active?.id === selected.id}
+            transcribeStatus={statuses[jobKey(selected.id, 'transcribe')]}
+            summarizeStatus={statuses[jobKey(selected.id, 'summarize')]}
+            onBack={() => setView('list')}
+            onError={setError}
+            onChanged={() => void refresh()}
+          />
+        ) : (
+          <div className="page-empty">
+            <svg className="page-empty-art" viewBox="0 0 120 80" aria-hidden>
+              <path d="M60 6v68" stroke="var(--rule-red)" strokeWidth="1.5" />
+              <path
+                d="M14 18h36M22 28h28M18 38h32M70 48h34M70 58h24M70 68h30"
+                stroke="var(--ink-3)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            <p className="page-empty-title">
+              {recordings.length ? 'Selecione uma gravação' : 'Suas reuniões viram texto aqui'}
+            </p>
+            <p className="page-empty-text">
+              De um lado da linha fica o que os outros disseram, do outro o que você disse. Depois,
+              um resumo com decisões e tarefas. Tudo no seu computador.
+            </p>
+          </div>
+        )}
+      </main>
     </div>
   )
 }

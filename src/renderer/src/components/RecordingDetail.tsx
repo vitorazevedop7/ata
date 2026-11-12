@@ -4,91 +4,126 @@ import {
   SPEAKER,
   audioNote,
   describeJob,
-  durationOf,
   formatClock,
+  formatLength,
   formatWhen,
   languagesOf,
   summaryToText,
   transcriptToText
 } from '../format'
 import { CopyButton, DeleteAudioButton, Progress, TranscribeMenu } from './controls'
-import { ChevronLeftIcon, FolderIcon, SparkleIcon } from './icons'
+import { ChevronLeftIcon, FolderIcon, NoteIcon } from './icons'
 
-function SummaryCard({ summary }: { summary: Summary }): React.JSX.Element {
-  const list = (title: string, items: string[]): React.JSX.Element | null =>
-    items.length ? (
-      <section className="summary-section">
-        <h4>{title}</h4>
-        <ul>
-          {items.map((item, index) => (
-            <li key={index}>{item}</li>
-          ))}
-        </ul>
-      </section>
-    ) : null
+type Tab = 'summary' | 'transcript'
 
+/** One section of the minutes: the label sits in the margin, left of the red rule. */
+function Entry({
+  label,
+  children
+}: {
+  label: string
+  children: React.ReactNode
+}): React.JSX.Element {
   return (
-    <article className="card">
-      <header className="card-head">
-        <h3>Resumo</h3>
-        <CopyButton getText={() => summaryToText(summary)} label="Copiar resumo" />
-      </header>
-      <p className="overview">{summary.overview}</p>
-      {list('Pontos principais', summary.keyPoints)}
-      {list('Decisões', summary.decisions)}
-      {summary.actionItems.length > 0 && (
-        <section className="summary-section">
-          <h4>Tarefas</h4>
-          <ul>
-            {summary.actionItems.map((item, index) => (
-              <li key={index}>
-                {item.task}
-                {item.owner && <span className="chip">{item.owner}</span>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {list('Pendências', summary.openQuestions)}
-      <p className="caption footnote">
-        Gerado no seu computador com {summary.model}. Pode conter erros; confira na transcrição.
-      </p>
-    </article>
+    <section className="entry">
+      <h3 className="entry-label">{label}</h3>
+      <div className="entry-body">{children}</div>
+    </section>
   )
 }
 
-function TranscriptCard({ transcript }: { transcript: Transcript }): React.JSX.Element {
+function SummaryView({ summary }: { summary: Summary }): React.JSX.Element {
+  const list = (items: string[]): React.JSX.Element => (
+    <ul className="lines">
+      {items.map((item, index) => (
+        <li key={index}>{item}</li>
+      ))}
+    </ul>
+  )
+
   return (
-    <article className="card">
-      <header className="card-head">
-        <div>
-          <h3>Transcrição</h3>
-          <p className="caption">{languagesOf(transcript)}</p>
-        </div>
-      </header>
-      {transcript.segments.length === 0 ? (
-        <p className="caption">Nenhuma fala foi detectada nesta gravação.</p>
-      ) : (
-        <ol className="segments">
-          {transcript.segments.map((segment, index) => {
-            const previous = transcript.segments[index - 1]
-            const speakerChanged = !previous || previous.channel !== segment.channel
-            return (
-              <li
-                key={index}
-                className={`segment ${segment.channel}${speakerChanged ? ' turn' : ''}`}
-              >
-                <span className="segment-time">{formatClock(segment.startMs / 1000)}</span>
-                <span className="segment-speaker">
-                  {speakerChanged ? SPEAKER[segment.channel] : ''}
-                </span>
-                <span className="segment-text">{segment.text}</span>
-              </li>
-            )
-          })}
-        </ol>
+    <div className="minutes">
+      <div className="sheet-tools">
+        <CopyButton getText={() => summaryToText(summary)} label="Copiar resumo" />
+      </div>
+      <Entry label="Resumo">
+        <p className="overview">{summary.overview}</p>
+      </Entry>
+      {summary.decisions.length > 0 && (
+        <Entry label="Decisões">
+          <ul className="lines decisions">
+            {summary.decisions.map((item, index) => (
+              <li key={index}>{item}</li>
+            ))}
+          </ul>
+        </Entry>
       )}
-    </article>
+      {summary.actionItems.length > 0 && (
+        <Entry label="Tarefas">
+          <ul className="lines tasks">
+            {summary.actionItems.map((item, index) => (
+              <li key={index}>
+                <span>{item.task}</span>
+                <span
+                  className={`owner${item.owner === SPEAKER.mic ? ' me' : item.owner ? '' : ' unknown'}`}
+                >
+                  {item.owner ?? 'Sem dono'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </Entry>
+      )}
+      {summary.keyPoints.length > 0 && (
+        <Entry label="Pontos principais">{list(summary.keyPoints)}</Entry>
+      )}
+      {summary.openQuestions.length > 0 && (
+        <Entry label="Pendências">{list(summary.openQuestions)}</Entry>
+      )}
+      <p className="footnote">
+        Gerado no seu computador com {summary.model}. Pode conter erros; confira na transcrição.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * The conversation as a stenographer's pad: "Outros" on the left of the red
+ * rule, "Eu" on the right. Consecutive lines from the same side form one turn.
+ */
+function TranscriptView({ transcript }: { transcript: Transcript }): React.JSX.Element {
+  if (transcript.segments.length === 0) {
+    return (
+      <div className="sheet-note">
+        <p className="sheet-note-title">Nenhuma fala foi detectada</p>
+        <p>O áudio desta gravação não tinha voz que o Whisper reconhecesse.</p>
+      </div>
+    )
+  }
+  return (
+    <div className="steno">
+      <div className="sheet-tools">
+        <span className="steno-langs">{languagesOf(transcript)}</span>
+        <CopyButton getText={() => transcriptToText(transcript)} label="Copiar transcrição" />
+      </div>
+      <div className="steno-heads" aria-hidden>
+        <span>{SPEAKER.system}</span>
+        <span>{SPEAKER.mic}</span>
+      </div>
+      <ol className="steno-lines">
+        {transcript.segments.map((segment, index) => {
+          const previous = transcript.segments[index - 1]
+          const turn = !previous || previous.channel !== segment.channel
+          return (
+            <li key={index} className={`said ${segment.channel}${turn ? ' turn' : ''}`}>
+              <span className="said-who">{SPEAKER[segment.channel]}</span>
+              <time className="said-time">{formatClock(segment.startMs / 1000)}</time>
+              <p className="said-text">{segment.text}</p>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
   )
 }
 
@@ -116,6 +151,8 @@ export function RecordingDetail({
 }): React.JSX.Element {
   const [transcript, setTranscript] = useState<Transcript | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
+  // Open on the summary when there is one, or news about it (in progress or failed).
+  const [tab, setTab] = useState<Tab>(item.hasSummary || summarizeStatus ? 'summary' : 'transcript')
 
   useEffect(() => {
     let cancelled = false
@@ -134,120 +171,171 @@ export function RecordingDetail({
 
   const transcribing = transcribeStatus && transcribeStatus.stage !== 'error'
   const summarizing = summarizeStatus && summarizeStatus.stage !== 'error'
-  const duration = durationOf(item)
-
+  const length = formatLength(item)
+  const summarize = (): void => {
+    setTab('summary')
+    void window.api.jobs.summarize(item.id)
+  }
   const transcribe = (deleteAudio: boolean): void =>
     void window.api.jobs.transcribe(item.id, { deleteAudio })
 
   return (
-    <div className="detail-inner">
+    <article className="sheet">
       <button className="btn plain back" onClick={onBack}>
         <ChevronLeftIcon /> Gravações
       </button>
 
-      <header className="detail-head">
-        <h2 className="detail-title">{formatWhen(item.startedAt, true)}</h2>
-        <p className="detail-meta">
-          {duration ?? (live ? 'Gravando agora' : 'Gravação incompleta')} · {audioNote(item)}
+      <header className="sheet-head">
+        <h1 className="sheet-title">{formatWhen(item.startedAt, true)}</h1>
+        <p className="sheet-meta">
+          <span>{length ?? (live ? 'Gravando agora' : 'Gravação incompleta')}</span>
+          <span className="sep" aria-hidden />
+          <span>{audioNote(item)}</span>
         </p>
+        <div className="sheet-actions">
+          {item.hasTranscript && summary && (
+            <button className="btn" disabled={summarizing || transcribing} onClick={summarize}>
+              <NoteIcon /> Refazer resumo
+            </button>
+          )}
+          <span className="spacer" />
+          {item.hasAudio && item.endedAt && !transcribing && (
+            <DeleteAudioButton
+              hasTranscript={item.hasTranscript}
+              onConfirm={async () => {
+                try {
+                  await window.api.recording.deleteAudio(item.id)
+                  onChanged()
+                } catch (error) {
+                  onError(error instanceof Error ? error.message : String(error))
+                }
+              }}
+            />
+          )}
+          <button
+            className="btn plain icon"
+            title="Abrir a pasta da gravação"
+            aria-label="Abrir a pasta da gravação"
+            onClick={() => void window.api.recording.openFolder(item.id)}
+          >
+            <FolderIcon />
+          </button>
+        </div>
       </header>
 
-      <div className="detail-actions">
-        {item.hasTranscript ? (
-          <>
+      {item.hasTranscript ? (
+        <>
+          <div className="tabs" role="tablist" aria-label="Conteúdo da gravação">
             <button
-              className={summary ? 'btn' : 'btn primary'}
-              disabled={summarizing || transcribing}
-              onClick={() => void window.api.jobs.summarize(item.id)}
+              role="tab"
+              id="tab-summary"
+              aria-selected={tab === 'summary'}
+              aria-controls="panel"
+              className="tab"
+              onClick={() => setTab('summary')}
             >
-              <SparkleIcon /> {summary ? 'Refazer resumo' : 'Resumir'}
+              Resumo
             </button>
-            {transcript && (
-              <CopyButton
-                className="btn"
-                getText={() => transcriptToText(transcript)}
-                label="Copiar transcrição"
-              />
-            )}
-          </>
-        ) : transcribing ? null : item.hasAudio && item.endedAt ? (
-          <TranscribeMenu onTranscribe={transcribe} align="start" />
-        ) : null}
-
-        <span className="spacer" />
-
-        {item.hasAudio && item.endedAt && !transcribing && (
-          <DeleteAudioButton
-            hasTranscript={item.hasTranscript}
-            onConfirm={async () => {
-              try {
-                await window.api.recording.deleteAudio(item.id)
-                onChanged()
-              } catch (error) {
-                onError(error instanceof Error ? error.message : String(error))
-              }
-            }}
-          />
-        )}
-        <button
-          className="btn plain icon"
-          title="Abrir a pasta da gravação"
-          aria-label="Abrir a pasta da gravação"
-          onClick={() => void window.api.recording.openFolder(item.id)}
-        >
-          <FolderIcon />
-        </button>
-      </div>
-
-      {transcribing && (
-        <div className="card status-card">
-          <Progress label={describeJob(transcribeStatus)} percent={transcribeStatus.percent} />
-          <p className="caption">Roda no seu computador. O áudio não sai daqui.</p>
-        </div>
-      )}
-      {transcribeStatus?.stage === 'error' && (
-        <div className="card notice-card error" role="alert">
-          <p className="notice-title">{describeJob(transcribeStatus)}</p>
-          <p className="caption mono">{transcribeStatus.error}</p>
-        </div>
-      )}
-      {!item.hasTranscript &&
-        !transcribing &&
-        item.hasAudio &&
-        item.endedAt &&
-        transcribeStatus?.stage !== 'error' && (
-          <div className="card notice-card">
-            <p className="notice-title">Ainda não transcrita</p>
-            <p className="caption">
-              Clique em Transcrever para ver o texto da conversa e depois gerar um resumo. Tudo roda
-              no seu computador.
-            </p>
+            <button
+              role="tab"
+              id="tab-transcript"
+              aria-selected={tab === 'transcript'}
+              aria-controls="panel"
+              className="tab"
+              onClick={() => setTab('transcript')}
+            >
+              Transcrição
+            </button>
           </div>
-        )}
-      {!item.hasTranscript && !transcribing && !item.hasAudio && item.endedAt && (
-        <div className="card notice-card">
-          <p className="notice-title">Sem transcrição</p>
-          <p className="caption">O áudio desta gravação foi apagado antes de ser transcrito.</p>
-        </div>
-      )}
 
-      {summarizing && (
-        <div className="card status-card">
-          <Progress label={describeJob(summarizeStatus)} percent={summarizeStatus.percent} />
-          <p className="caption">
-            O resumo é gerado no seu computador e pode levar alguns minutos.
-          </p>
+          <div id="panel" role="tabpanel" aria-labelledby={`tab-${tab}`} className="panel">
+            {tab === 'summary' ? (
+              <>
+                {summarizing && (
+                  <div className="sheet-note working">
+                    <Progress
+                      label={describeJob(summarizeStatus)}
+                      percent={summarizeStatus.percent}
+                    />
+                    <p>O resumo é gerado no seu computador e pode levar alguns minutos.</p>
+                  </div>
+                )}
+                {summarizeStatus?.stage === 'error' && (
+                  <div className="sheet-note error" role="alert">
+                    <p className="sheet-note-title">{describeJob(summarizeStatus)}</p>
+                    <p className="mono">{summarizeStatus.error}</p>
+                  </div>
+                )}
+                {summary ? (
+                  <SummaryView summary={summary} />
+                ) : (
+                  !summarizing && (
+                    <div className="sheet-note">
+                      <p className="sheet-note-title">Ainda sem resumo</p>
+                      <p>
+                        O modelo local lê a transcrição e separa o resumo, as decisões, as tarefas e
+                        o que ficou pendente.
+                      </p>
+                      <div className="sheet-note-actions">
+                        <button className="btn primary" disabled={transcribing} onClick={summarize}>
+                          <NoteIcon /> Resumir
+                        </button>
+                      </div>
+                    </div>
+                  )
+                )}
+              </>
+            ) : transcript ? (
+              <TranscriptView transcript={transcript} />
+            ) : null}
+          </div>
+        </>
+      ) : (
+        <div className="panel">
+          {transcribing && (
+            <div className="sheet-note working">
+              <Progress label={describeJob(transcribeStatus)} percent={transcribeStatus.percent} />
+              <p>Roda no seu computador. O áudio não sai daqui.</p>
+            </div>
+          )}
+          {transcribeStatus?.stage === 'error' && (
+            <div className="sheet-note error" role="alert">
+              <p className="sheet-note-title">{describeJob(transcribeStatus)}</p>
+              <p className="mono">{transcribeStatus.error}</p>
+            </div>
+          )}
+          {!transcribing && item.hasAudio && item.endedAt && (
+            <div className="sheet-note">
+              <p className="sheet-note-title">
+                {transcribeStatus?.stage === 'error' ? 'Tentar de novo' : 'Ainda não transcrita'}
+              </p>
+              <p>
+                O Whisper transforma o áudio em texto, separando o que você disse do que os outros
+                disseram. Depois dá para gerar o resumo.
+              </p>
+              <div className="sheet-note-actions">
+                <TranscribeMenu onTranscribe={transcribe} align="start" />
+              </div>
+            </div>
+          )}
+          {!item.hasAudio && item.endedAt && (
+            <div className="sheet-note">
+              <p className="sheet-note-title">Sem transcrição</p>
+              <p>O áudio desta gravação foi apagado antes de ser transcrito.</p>
+            </div>
+          )}
+          {!item.endedAt && (
+            <div className="sheet-note">
+              <p className="sheet-note-title">{live ? 'Gravando' : 'Gravação incompleta'}</p>
+              <p>
+                {live
+                  ? 'Quando você parar, a gravação fica pronta para transcrever.'
+                  : 'Esta gravação não foi finalizada, provavelmente porque o app fechou enquanto gravava.'}
+              </p>
+            </div>
+          )}
         </div>
       )}
-      {summarizeStatus?.stage === 'error' && (
-        <div className="card notice-card error" role="alert">
-          <p className="notice-title">{describeJob(summarizeStatus)}</p>
-          <p className="caption mono">{summarizeStatus.error}</p>
-        </div>
-      )}
-
-      {summary && <SummaryCard summary={summary} />}
-      {transcript && <TranscriptCard transcript={transcript} />}
-    </div>
+    </article>
   )
 }

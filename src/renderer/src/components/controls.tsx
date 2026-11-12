@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react'
-import { CheckIcon, CopyIcon, TrashIcon } from './icons'
+import { CheckIcon, ChevronDownIcon, CopyIcon, TrashIcon } from './icons'
 
 /**
  * A button that opens a small panel anchored to it. The panel scales from the
@@ -70,7 +70,15 @@ export function TranscribeMenu({
   align?: 'start' | 'end'
 }): React.JSX.Element {
   return (
-    <Disclosure label="Transcrever" className={className} align={align}>
+    <Disclosure
+      label={
+        <>
+          Transcrever <ChevronDownIcon className="chevron" />
+        </>
+      }
+      className={className}
+      align={align}
+    >
       {(close) => (
         <div className="menu" role="menu">
           <button

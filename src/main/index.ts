@@ -20,7 +20,7 @@ function createWindow(): void {
     minHeight: 520,
     title: 'Granola Local',
     // Matches the page background so the window never flashes white on open.
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1c1c1e' : '#f5f5f7',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#13161d' : '#eef0f4',
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
