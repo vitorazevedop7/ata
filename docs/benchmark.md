@@ -37,6 +37,22 @@
 ~10 min de transcrição (GPU) + ~9 min de resumo ≈ **20 min**, melhor que a estimativa inicial de 30–60 min.
 Sem GPU NVIDIA: ~1h40 + ~9 min.
 
+## Teste real no app (2026-11-12)
+
+Gravação de 20min38s feita pelo app: um vídeo do YouTube em inglês no canal do sistema e o microfone quase sempre em silêncio.
+
+| Problema encontrado | Causa | Correção |
+|---|---|---|
+| Canal do sistema virou uma mistura sem sentido | Idioma fixo em `pt`; o vídeo era em inglês | `-l auto` (detectou `en` com p = 0,9999) |
+| Repetições em trechos longos | Contexto de texto entre janelas | `-mc 0` |
+| Microfone: 144 linhas, só 10 diferentes ("E aí" 81×) | Whisper inventa frases no silêncio | `--vad` com Silero v6.2.0 |
+
+Com `-l auto -mc 0 --vad`:
+
+- **Microfone:** 14 s em vez de 276 s; 10 linhas reais, sem repetição.
+- **Sistema:** 214 s; 7062 palavras (6996 sem VAD), nenhuma fala perdida.
+- **Pipeline completo no app:** 238 s para os dois canais (≈ 5× tempo real), 498 trechos ordenados por tempo.
+
 ## Próximos testes
 
 - Um segundo modelo de resumo (ex.: `gemma4:e4b`) para comparar a qualidade em pt-BR.
