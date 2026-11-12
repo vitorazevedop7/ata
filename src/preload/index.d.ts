@@ -1,4 +1,4 @@
-import type { JobsApi, RecordingApi, ResultsApi } from '../shared/types'
+import type { JobsApi, RecordingApi, ResultsApi, SearchApi } from '../shared/types'
 
 declare global {
   interface Window {
@@ -9,6 +9,7 @@ declare global {
       }
       jobs: JobsApi
       results: ResultsApi
+      search: SearchApi
       copyText(text: string): Promise<void>
     }
   }

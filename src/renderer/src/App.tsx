@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { Channel, JobKind, JobStatus, RecordingSummary } from '../../shared/types'
+import type { Channel, JobKind, JobStatus, RecordingSummary, SearchHit } from '../../shared/types'
 import { Progress, TranscribeMenu } from './components/controls'
 import { BrandMark } from './components/icons'
 import { RecordingDetail } from './components/RecordingDetail'
+import { SearchField, SearchResults } from './components/Search'
 import { dayGroup, describeJob, formatClock, formatLength, formatRowTitle } from './format'
 import { type ActiveRecording, CaptureError, startRecording } from './recorder'
 
@@ -62,7 +63,10 @@ function App(): React.JSX.Element {
   const [revisions, setRevisions] = useState<Record<string, number>>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [view, setView] = useState<'list' | 'detail'>('list')
+  const [query, setQuery] = useState('')
+  const [focusMs, setFocusMs] = useState<number | undefined>(undefined)
   const startedAt = useRef(0)
+  const searching = query.trim() !== ''
 
   const refresh = useCallback(async () => {
     setRecordings(await window.api.recording.list())
@@ -146,8 +150,24 @@ function App(): React.JSX.Element {
 
   const select = (id: string): void => {
     setSelectedId(id)
+    setFocusMs(undefined)
     setView('detail')
   }
+
+  /** Opens a search match; one from the transcript scrolls to where it was said. */
+  const openHit = (hit: SearchHit): void => {
+    setSelectedId(hit.id)
+    setView('detail')
+    if (hit.id === selectedId && hit.startMs !== undefined && hit.startMs === focusMs) {
+      // Same spot again (the user scrolled away): clear and set it so it jumps again.
+      setFocusMs(undefined)
+      requestAnimationFrame(() => setFocusMs(hit.startMs))
+    } else {
+      setFocusMs(hit.startMs)
+    }
+  }
+
+  const showLibrary = useCallback(() => setView('list'), [])
 
   const selected = recordings.find((item) => item.id === selectedId) ?? null
 
@@ -183,7 +203,17 @@ function App(): React.JSX.Element {
           </button>
         </section>
 
-        <nav className="library">
+        <SearchField value={query} onChange={setQuery} onReveal={showLibrary} />
+        {searching && (
+          <SearchResults
+            query={query}
+            recordings={recordings}
+            selectedId={selectedId}
+            onOpen={openHit}
+          />
+        )}
+
+        <nav className="library" hidden={searching}>
           {recordings.length === 0 ? (
             <div className="library-empty">
               <p className="library-empty-title">Nenhuma gravação ainda</p>
@@ -271,6 +301,7 @@ function App(): React.JSX.Element {
             onBack={() => setView('list')}
             onError={setError}
             onChanged={() => void refresh()}
+            focusMs={focusMs}
           />
         ) : (
           <div className="page-empty">
