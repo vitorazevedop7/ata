@@ -3,6 +3,7 @@ import { mkdir, rename, rm, stat } from 'fs/promises'
 import { basename, extname } from 'path'
 import { IMPORT_EXTENSIONS, type ImportProgress } from '../shared/types'
 import { channelFile, recordingDir } from './paths'
+import { processRecording } from './jobs'
 import { run } from './process'
 import { newId } from './recordings'
 import { exists, writeMeta } from './store'
@@ -109,11 +110,11 @@ async function importAll(paths: string[]): Promise<{ ids: string[]; errors: stri
     const base: ImportProgress = { fileName: basename(path), index, total: paths.length }
     broadcast('recording:import-progress', base)
     try {
-      ids.push(
-        await importFile(path, (percent) =>
-          broadcast('recording:import-progress', { ...base, percent })
-        )
+      const id = await importFile(path, (percent) =>
+        broadcast('recording:import-progress', { ...base, percent })
       )
+      ids.push(id)
+      processRecording(id)
       broadcast('recordings:changed')
     } catch (error) {
       errors.push(error instanceof Error ? error.message : String(error))

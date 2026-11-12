@@ -18,7 +18,7 @@ local. Escopo e decisões em `docs/mvp.md`; números de desempenho em `docs/benc
   - `capture.ts`: microfone + loopback do sistema.
   - `recordings.ts`: IPC das gravações (gravar, listar, apagar áudio).
   - `importer.ts`: importa arquivo de áudio ou vídeo (botão Importar ou arrastar). O ffmpeg converte para opus mono em `system.webm`; o `meta.json` ganha `source: 'import'`, o nome do arquivo e `importedAt` (o prazo de 7 dias conta a partir da importação). Na interface e no resumo, o falante único aparece como "Conversa".
-  - `jobs.ts`: fila única de tarefas (transcrever, resumir), uma por vez, com status para a interface.
+  - `jobs.ts`: fila única de tarefas (transcrever, resumir), uma por vez, com status para a interface. Toda gravação que termina (parada, importada ou fechada depois de uma queda) entra sozinha na fila (`processRecording`); quando a transcrição termina, o resumo é enfileirado na frente. "Apagar áudio ao terminar" pode ser pedido com a transcrição já em andamento.
   - `transcription.ts`: ffmpeg → whisper.cpp. `summary.ts` e `ollama.ts`: resumo com o Ollama local, em partes para conversas longas.
   - `ask.ts`: perguntas sobre uma gravação (job `ask`): resumo + trechos da transcrição escolhidos por palavras, resposta do Ollama com horários citados, histórico em `chat.json`.
   - `retention.ts`: apaga o áudio 7 dias depois da gravação (na abertura e a cada hora). Transcrição e resumo ficam.
