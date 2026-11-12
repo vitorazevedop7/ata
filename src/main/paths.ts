@@ -19,6 +19,14 @@ export function channelFile(id: string, channel: Channel): string {
   return join(recordingDir(id), `${channel}.webm`)
 }
 
+export function metaFile(id: string): string {
+  return join(recordingDir(id), 'meta.json')
+}
+
 export function transcriptFile(id: string): string {
   return join(recordingDir(id), 'transcript.json')
+}
+
+export function summaryFile(id: string): string {
+  return join(recordingDir(id), 'summary.json')
 }
