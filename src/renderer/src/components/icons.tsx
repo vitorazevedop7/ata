@@ -89,3 +89,13 @@ export function BrandMark({ className }: IconProps): React.JSX.Element {
     </svg>
   )
 }
+
+/** An arrow dropping into a tray: bringing a file into the app. */
+export function ImportIcon({ className }: IconProps): React.JSX.Element {
+  return (
+    <svg {...base} className={className}>
+      <path d="M8 2.5v7M5 6.75L8 9.75l3-3" />
+      <path d="M2.5 10.5v1.5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5v-1.5" />
+    </svg>
+  )
+}

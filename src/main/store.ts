@@ -16,6 +16,10 @@ export interface RecordingMeta {
   endedAt?: string
   audioDeletedAt?: string
   audioDeletedReason?: 'manual' | 'expired' | 'after-transcription'
+  /** Set when the recording came from a file the user imported. */
+  source?: 'import'
+  importedFileName?: string
+  importedAt?: string
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -45,8 +49,9 @@ export async function exists(path: string): Promise<boolean> {
   }
 }
 
+/** Imported files may be old: their audio gets the full period counted from the import. */
 export function audioExpiresAt(meta: RecordingMeta): Date {
-  return new Date(Date.parse(meta.startedAt) + AUDIO_RETENTION_DAYS * DAY_MS)
+  return new Date(Date.parse(meta.importedAt ?? meta.startedAt) + AUDIO_RETENTION_DAYS * DAY_MS)
 }
 
 export async function summarize(id: string): Promise<RecordingSummary | null> {
@@ -63,7 +68,8 @@ export async function summarize(id: string): Promise<RecordingSummary | null> {
       audioDeletedAt: meta.audioDeletedAt ?? null,
       audioExpiresAt: audioExpiresAt(meta).toISOString(),
       hasTranscript: await exists(transcriptFile(id)),
-      hasSummary: await exists(summaryFile(id))
+      hasSummary: await exists(summaryFile(id)),
+      importedFileName: meta.source === 'import' ? (meta.importedFileName ?? '') : null
     }
   } catch {
     return null

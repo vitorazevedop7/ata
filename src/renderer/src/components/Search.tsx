@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { RecordingSummary, SearchHit } from '../../../shared/types'
-import { SPEAKER, formatClock, formatWhen } from '../format'
+import { formatClock, formatWhen, speakerOf } from '../format'
 
 /** Long enough to skip the keystrokes of a word being typed, short enough to feel immediate. */
 const DEBOUNCE_MS = 150
@@ -167,7 +167,9 @@ export function SearchResults({
                         {hit.startMs === undefined
                           ? 'Resumo'
                           : `${formatClock(hit.startMs / 1000)}${
-                              hit.channel ? ` · ${SPEAKER[hit.channel]}` : ''
+                              hit.channel
+                                ? ` · ${speakerOf(hit.channel, recording.importedFileName !== null)}`
+                                : ''
                             }`}
                       </span>
                       <Snippet hit={hit} />

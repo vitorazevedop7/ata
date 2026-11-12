@@ -5,7 +5,7 @@ import { isBusy } from './jobs'
 import { channelFile, recordingDir, recordingsDir } from './paths'
 import { deleteAudio, listIds, readMeta, summarize, writeMeta } from './store'
 
-function newId(now: Date): string {
+export function newId(now: Date): string {
   const pad = (n: number): string => String(n).padStart(2, '0')
   return (
     `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-` +

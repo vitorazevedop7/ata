@@ -13,7 +13,9 @@ import {
   formatClock,
   formatLength,
   formatWhen,
+  importNote,
   languagesOf,
+  speakerOf,
   summaryToText,
   transcriptToText
 } from '../format'
@@ -42,6 +44,9 @@ function segmentAt(segments: TranscriptSegment[], ms: number): number {
   return best === -1 ? 0 : best
 }
 
+/** Silence that starts a new paragraph in a single-speaker transcript. */
+const PAUSE_MS = 1500
+
 /** One section of the minutes: the label sits in the margin, left of the red rule. */
 function Entry({
   label,
@@ -58,7 +63,13 @@ function Entry({
   )
 }
 
-function SummaryView({ summary }: { summary: Summary }): React.JSX.Element {
+function SummaryView({
+  summary,
+  imported
+}: {
+  summary: Summary
+  imported: boolean
+}): React.JSX.Element {
   const list = (items: string[]): React.JSX.Element => (
     <ul className="lines">
       {items.map((item, index) => (
@@ -90,11 +101,13 @@ function SummaryView({ summary }: { summary: Summary }): React.JSX.Element {
             {summary.actionItems.map((item, index) => (
               <li key={index}>
                 <span>{item.task}</span>
-                <span
-                  className={`owner${item.owner === SPEAKER.mic ? ' me' : item.owner ? '' : ' unknown'}`}
-                >
-                  {item.owner ?? 'Sem dono'}
-                </span>
+                {!imported && (
+                  <span
+                    className={`owner${item.owner === SPEAKER.mic ? ' me' : item.owner ? '' : ' unknown'}`}
+                  >
+                    {item.owner ?? 'Sem dono'}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
@@ -119,10 +132,12 @@ function SummaryView({ summary }: { summary: Summary }): React.JSX.Element {
  */
 function TranscriptView({
   transcript,
+  imported,
   flash,
   onFlashEnd
 }: {
   transcript: Transcript
+  imported: boolean
   /** Segment to scroll to and highlight briefly; a new object scrolls again. */
   flash: { index: number } | null
   onFlashEnd: () => void
@@ -144,19 +159,29 @@ function TranscriptView({
     )
   }
   return (
-    <div className="steno">
+    <div className={`steno${imported ? ' single' : ''}`}>
       <div className="sheet-tools">
-        <span className="steno-langs">{languagesOf(transcript)}</span>
-        <CopyButton getText={() => transcriptToText(transcript)} label="Copiar transcrição" />
+        <span className="steno-langs">{languagesOf(transcript, imported)}</span>
+        <CopyButton
+          getText={() => transcriptToText(transcript, imported)}
+          label="Copiar transcrição"
+        />
       </div>
-      <div className="steno-heads" aria-hidden>
-        <span>{SPEAKER.system}</span>
-        <span>{SPEAKER.mic}</span>
-      </div>
+      {!imported && (
+        <div className="steno-heads" aria-hidden>
+          <span>{SPEAKER.system}</span>
+          <span>{SPEAKER.mic}</span>
+        </div>
+      )}
       <ol className="steno-lines" ref={lines}>
         {transcript.segments.map((segment, index) => {
           const previous = transcript.segments[index - 1]
-          const turn = !previous || previous.channel !== segment.channel
+          // One speaker: a pause starts a new paragraph instead of a change of side.
+          const turn =
+            !previous ||
+            (imported
+              ? segment.startMs - previous.endMs > PAUSE_MS
+              : previous.channel !== segment.channel)
           const flashing = flash?.index === index
           return (
             <li
@@ -164,7 +189,7 @@ function TranscriptView({
               className={`said ${segment.channel}${turn ? ' turn' : ''}${flashing ? ' flash' : ''}`}
               onAnimationEnd={flashing ? onFlashEnd : undefined}
             >
-              <span className="said-who">{SPEAKER[segment.channel]}</span>
+              <span className="said-who">{speakerOf(segment.channel, imported)}</span>
               <time className="said-time">{formatClock(segment.startMs / 1000)}</time>
               <p className="said-text">{segment.text}</p>
             </li>
@@ -240,6 +265,8 @@ export function RecordingDetail({
   const transcribing = transcribeStatus && transcribeStatus.stage !== 'error'
   const summarizing = summarizeStatus && summarizeStatus.stage !== 'error'
   const length = formatLength(item)
+  const imported = item.importedFileName !== null
+  const source = importNote(item)
   const summarize = (): void => {
     setTab('summary')
     void window.api.jobs.summarize(item.id)
@@ -259,6 +286,14 @@ export function RecordingDetail({
           <span>{length ?? (live ? 'Gravando agora' : 'Gravação incompleta')}</span>
           <span className="sep" aria-hidden />
           <span>{audioNote(item)}</span>
+          {source && (
+            <>
+              <span className="sep" aria-hidden />
+              <span className="sheet-source" title={source}>
+                {source}
+              </span>
+            </>
+          )}
         </p>
         <div className="sheet-actions">
           {item.hasTranscript && summary && (
@@ -338,7 +373,7 @@ export function RecordingDetail({
                   </div>
                 )}
                 {summary ? (
-                  <SummaryView summary={summary} />
+                  <SummaryView summary={summary} imported={imported} />
                 ) : (
                   !summarizing && (
                     <div className="sheet-note">
@@ -359,6 +394,7 @@ export function RecordingDetail({
             ) : transcript ? (
               <TranscriptView
                 transcript={transcript}
+                imported={imported}
                 flash={flash}
                 onFlashEnd={() => setFlash(null)}
               />
@@ -369,7 +405,10 @@ export function RecordingDetail({
         <div className="panel">
           {transcribing && (
             <div className="sheet-note working">
-              <Progress label={describeJob(transcribeStatus)} percent={transcribeStatus.percent} />
+              <Progress
+                label={describeJob(transcribeStatus, imported)}
+                percent={transcribeStatus.percent}
+              />
               <p>Roda no seu computador. O áudio não sai daqui.</p>
             </div>
           )}
@@ -385,8 +424,9 @@ export function RecordingDetail({
                 {transcribeStatus?.stage === 'error' ? 'Tentar de novo' : 'Ainda não transcrita'}
               </p>
               <p>
-                O Whisper transforma o áudio em texto, separando o que você disse do que os outros
-                disseram. Depois dá para gerar o resumo.
+                {imported
+                  ? 'O Whisper transforma o áudio em texto. O arquivo tem uma faixa só, então as falas aparecem juntas, sem separar quem disse o quê. Depois dá para gerar o resumo.'
+                  : 'O Whisper transforma o áudio em texto, separando o que você disse do que os outros disseram. Depois dá para gerar o resumo.'}
               </p>
               <div className="sheet-note-actions">
                 <TranscribeMenu onTranscribe={transcribe} align="start" />

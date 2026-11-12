@@ -1,6 +1,8 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import type {
   Channel,
+  ImportApi,
+  ImportProgress,
   JobStatus,
   JobsApi,
   RecordingApi,
@@ -21,6 +23,17 @@ const recording: RecordingApi & { onChanged(listener: () => void): () => void } 
     const handler = (): void => listener()
     ipcRenderer.on('recordings:changed', handler)
     return () => ipcRenderer.removeListener('recordings:changed', handler)
+  }
+}
+
+const importer: ImportApi = {
+  files: (paths?: string[]) => ipcRenderer.invoke('recording:import', paths),
+  pathOf: (file: File) => webUtils.getPathForFile(file),
+  onProgress: (listener) => {
+    const handler = (_event: IpcRendererEvent, progress: ImportProgress | null): void =>
+      listener(progress)
+    ipcRenderer.on('recording:import-progress', handler)
+    return () => ipcRenderer.removeListener('recording:import-progress', handler)
   }
 }
 
@@ -47,4 +60,4 @@ const search: SearchApi = {
 
 const copyText = (text: string): Promise<void> => ipcRenderer.invoke('app:copy', text)
 
-contextBridge.exposeInMainWorld('api', { recording, jobs, results, search, copyText })
+contextBridge.exposeInMainWorld('api', { recording, importer, jobs, results, search, copyText })
