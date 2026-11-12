@@ -49,10 +49,12 @@ export async function ensureModel(tools: OllamaTools): Promise<void> {
 export interface GenerateOptions {
   system: string
   prompt: string
-  /** JSON schema the answer must follow. */
-  schema: object
+  /** JSON schema the answer must follow; plain text when omitted. */
+  schema?: object
   numCtx: number
-  onToken?: () => void
+  /** Receives the text generated so far after each token. */
+  onToken?: (text: string) => void
+  signal?: AbortSignal
 }
 
 /**
@@ -62,6 +64,9 @@ export interface GenerateOptions {
 export async function generate(tools: OllamaTools, options: GenerateOptions): Promise<string> {
   const controller = new AbortController()
   controllers.add(controller)
+  const abort = (): void => controller.abort()
+  options.signal?.addEventListener('abort', abort)
+  if (options.signal?.aborted) abort()
   try {
     const res = await fetch(`${tools.host}/api/generate`, {
       method: 'POST',
@@ -92,12 +97,13 @@ export async function generate(tools: OllamaTools, options: GenerateOptions): Pr
         if (event.error) throw new Error(`Ollama: ${event.error}`)
         if (event.response) {
           text += event.response
-          options.onToken?.()
+          options.onToken?.(text)
         }
       }
     }
     return text
   } finally {
+    options.signal?.removeEventListener('abort', abort)
     controllers.delete(controller)
   }
 }

@@ -1228,6 +1228,124 @@ button {
   }
 }
 
+/* ---------- Questions about the recording ---------- */
+
+.ask {
+  margin-top: 1.25rem;
+}
+
+.qa-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.qa {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.qa:first-child {
+  padding-top: 0.125rem;
+}
+
+.qa-q {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.qa-a {
+  margin-top: 0.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  white-space: pre-line;
+  text-wrap: pretty;
+}
+
+/* A cited time: a small tag that jumps to the transcript. */
+.cite {
+  display: inline-block;
+  margin: 0 0.0625rem;
+  padding: 0 0.3125rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--accent-tint);
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.cite:hover {
+  text-decoration: underline;
+}
+
+.cite:active {
+  transform: scale(0.96);
+}
+
+.qa-working {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-top: 0.625rem;
+}
+
+.qa-working .progress {
+  flex: 1;
+}
+
+.qa-working .progress-label {
+  font-size: 0.875rem;
+  color: var(--ink-2);
+}
+
+.ask-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.75rem;
+  max-height: 10rem;
+  padding: 0.5625rem 0.75rem;
+  border: none;
+  border-radius: 10px;
+  background: var(--paper-raised);
+  box-shadow: var(--shadow-raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.ask-input::placeholder {
+  color: var(--ink-3);
+}
+
+.ask-hint,
+.ask-error {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--ink-3);
+}
+
+.ask-error {
+  color: var(--danger);
+}
+
+.ask .sheet-note {
+  margin-bottom: 1rem;
+}
+
 /* ---------- Empty page ---------- */
 
 .page-empty {
