@@ -21,7 +21,7 @@ import {
 } from '../format'
 import { AskSection } from './AskSection'
 import { CopyButton, DeleteAudioButton, Progress, TranscribeMenu } from './controls'
-import { ChevronLeftIcon, FolderIcon, NoteIcon } from './icons'
+import { ChevronLeftIcon, FolderIcon, NoteIcon, TrashIcon } from './icons'
 
 type Tab = 'summary' | 'transcript'
 
@@ -253,6 +253,13 @@ export function RecordingDetail({
   )
   const [flash, setFlash] = useState<{ index: number } | null>(null)
   const [handledFocus, setHandledFocus] = useState<number | undefined>(undefined)
+  const [hadTranscript, setHadTranscript] = useState(item.hasTranscript)
+
+  // The transcript just arrived and its summary is on the way: show the summary's progress.
+  if (item.hasTranscript !== hadTranscript) {
+    setHadTranscript(item.hasTranscript)
+    if (item.hasTranscript && summarizeStatus && focusMs === undefined) setTab('summary')
+  }
 
   // Jump once the transcript is loaded, and again whenever focusMs changes
   // (not when the transcript reloads after a job finishes).
@@ -338,6 +345,11 @@ export function RecordingDetail({
                 }
               }}
             />
+          )}
+          {transcribing && !transcribeStatus.deleteAudio && (
+            <button className="btn plain danger" onClick={() => transcribe(true)}>
+              <TrashIcon /> Apagar áudio ao terminar
+            </button>
           )}
           <button
             className="btn plain icon"
@@ -441,7 +453,11 @@ export function RecordingDetail({
                 label={describeJob(transcribeStatus, imported)}
                 percent={transcribeStatus.percent}
               />
-              <p>Roda no seu computador. O áudio não sai daqui.</p>
+              <p>
+                Roda no seu computador e o áudio não sai daqui. Quando o texto ficar pronto, o
+                resumo começa sozinho.
+                {transcribeStatus.deleteAudio && ' O áudio será apagado em seguida.'}
+              </p>
             </div>
           )}
           {transcribeStatus?.stage === 'error' && (
@@ -457,8 +473,8 @@ export function RecordingDetail({
               </p>
               <p>
                 {imported
-                  ? 'O Whisper transforma o áudio em texto. O arquivo tem uma faixa só, então as falas aparecem juntas, sem separar quem disse o quê. Depois dá para gerar o resumo.'
-                  : 'O Whisper transforma o áudio em texto, separando o que você disse do que os outros disseram. Depois dá para gerar o resumo.'}
+                  ? 'O Whisper transforma o áudio em texto. O arquivo tem uma faixa só, então as falas aparecem juntas, sem separar quem disse o quê. Depois o resumo é gerado sozinho.'
+                  : 'O Whisper transforma o áudio em texto, separando o que você disse do que os outros disseram. Depois o resumo é gerado sozinho.'}
               </p>
               <div className="sheet-note-actions">
                 <TranscribeMenu onTranscribe={transcribe} align="start" />
@@ -476,7 +492,7 @@ export function RecordingDetail({
               <p className="sheet-note-title">{live ? 'Gravando' : 'Gravação incompleta'}</p>
               <p>
                 {live
-                  ? 'Quando você parar, a gravação fica pronta para transcrever.'
+                  ? 'Quando você parar, a transcrição e o resumo começam sozinhos.'
                   : 'Esta gravação não foi finalizada, provavelmente porque o app fechou enquanto gravava.'}
               </p>
             </div>
