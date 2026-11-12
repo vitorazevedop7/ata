@@ -1,5 +1,11 @@
-import { useEffect, useState } from 'react'
-import type { JobStatus, RecordingSummary, Summary, Transcript } from '../../../shared/types'
+import { useEffect, useRef, useState } from 'react'
+import type {
+  JobStatus,
+  RecordingSummary,
+  Summary,
+  Transcript,
+  TranscriptSegment
+} from '../../../shared/types'
 import {
   SPEAKER,
   audioNote,
@@ -15,6 +21,26 @@ import { CopyButton, DeleteAudioButton, Progress, TranscribeMenu } from './contr
 import { ChevronLeftIcon, FolderIcon, NoteIcon } from './icons'
 
 type Tab = 'summary' | 'transcript'
+
+/**
+ * Index of the segment being spoken at `ms`: the latest one that started by
+ * then, preferring one still running (the two channels overlap in time).
+ */
+function segmentAt(segments: TranscriptSegment[], ms: number): number {
+  let best = -1
+  let bestRunning = -1
+  segments.forEach((segment, index) => {
+    if (segment.startMs > ms) return
+    if (best === -1 || segment.startMs >= segments[best].startMs) best = index
+    if (
+      ms < segment.endMs &&
+      (bestRunning === -1 || segment.startMs >= segments[bestRunning].startMs)
+    )
+      bestRunning = index
+  })
+  if (bestRunning !== -1) return bestRunning
+  return best === -1 ? 0 : best
+}
 
 /** One section of the minutes: the label sits in the margin, left of the red rule. */
 function Entry({
@@ -91,7 +117,24 @@ function SummaryView({ summary }: { summary: Summary }): React.JSX.Element {
  * The conversation as a stenographer's pad: "Outros" on the left of the red
  * rule, "Eu" on the right. Consecutive lines from the same side form one turn.
  */
-function TranscriptView({ transcript }: { transcript: Transcript }): React.JSX.Element {
+function TranscriptView({
+  transcript,
+  flash,
+  onFlashEnd
+}: {
+  transcript: Transcript
+  /** Segment to scroll to and highlight briefly; a new object scrolls again. */
+  flash: { index: number } | null
+  onFlashEnd: () => void
+}): React.JSX.Element {
+  const lines = useRef<HTMLOListElement>(null)
+
+  useEffect(() => {
+    if (!flash) return
+    const line = lines.current?.children[flash.index]
+    line?.scrollIntoView({ block: 'center' })
+  }, [flash])
+
   if (transcript.segments.length === 0) {
     return (
       <div className="sheet-note">
@@ -110,12 +153,17 @@ function TranscriptView({ transcript }: { transcript: Transcript }): React.JSX.E
         <span>{SPEAKER.system}</span>
         <span>{SPEAKER.mic}</span>
       </div>
-      <ol className="steno-lines">
+      <ol className="steno-lines" ref={lines}>
         {transcript.segments.map((segment, index) => {
           const previous = transcript.segments[index - 1]
           const turn = !previous || previous.channel !== segment.channel
+          const flashing = flash?.index === index
           return (
-            <li key={index} className={`said ${segment.channel}${turn ? ' turn' : ''}`}>
+            <li
+              key={index}
+              className={`said ${segment.channel}${turn ? ' turn' : ''}${flashing ? ' flash' : ''}`}
+              onAnimationEnd={flashing ? onFlashEnd : undefined}
+            >
               <span className="said-who">{SPEAKER[segment.channel]}</span>
               <time className="said-time">{formatClock(segment.startMs / 1000)}</time>
               <p className="said-text">{segment.text}</p>
@@ -135,7 +183,8 @@ export function RecordingDetail({
   summarizeStatus,
   onBack,
   onError,
-  onChanged
+  onChanged,
+  focusMs
 }: {
   item: RecordingSummary
   /** Bumped whenever a job for this recording finishes, to reload results. */
@@ -148,11 +197,30 @@ export function RecordingDetail({
   onError: (message: string) => void
   /** Called after an action here changes the recording on disk. */
   onChanged: () => void
+  /**
+   * Instant in the recording to show: switches to the transcript, scrolls to
+   * the segment spoken then and highlights it. Each new value jumps again.
+   */
+  focusMs?: number
 }): React.JSX.Element {
   const [transcript, setTranscript] = useState<Transcript | null>(null)
   const [summary, setSummary] = useState<Summary | null>(null)
   // Open on the summary when there is one, or news about it (in progress or failed).
-  const [tab, setTab] = useState<Tab>(item.hasSummary || summarizeStatus ? 'summary' : 'transcript')
+  const [tab, setTab] = useState<Tab>(
+    focusMs === undefined && (item.hasSummary || summarizeStatus) ? 'summary' : 'transcript'
+  )
+  const [flash, setFlash] = useState<{ index: number } | null>(null)
+  const [handledFocus, setHandledFocus] = useState<number | undefined>(undefined)
+
+  // Jump once the transcript is loaded, and again whenever focusMs changes
+  // (not when the transcript reloads after a job finishes).
+  if (transcript && focusMs !== handledFocus) {
+    setHandledFocus(focusMs)
+    if (focusMs !== undefined && transcript.segments.length > 0) {
+      setTab('transcript')
+      setFlash({ index: segmentAt(transcript.segments, focusMs) })
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -232,7 +300,10 @@ export function RecordingDetail({
               aria-selected={tab === 'summary'}
               aria-controls="panel"
               className="tab"
-              onClick={() => setTab('summary')}
+              onClick={() => {
+                setTab('summary')
+                setFlash(null)
+              }}
             >
               Resumo
             </button>
@@ -286,7 +357,11 @@ export function RecordingDetail({
                 )}
               </>
             ) : transcript ? (
-              <TranscriptView transcript={transcript} />
+              <TranscriptView
+                transcript={transcript}
+                flash={flash}
+                onFlashEnd={() => setFlash(null)}
+              />
             ) : null}
           </div>
         </>
