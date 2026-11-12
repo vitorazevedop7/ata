@@ -59,8 +59,8 @@ Whisper e Ollama rodam **um depois do outro**, não juntos, para caber em 16 GB 
 
 i7-11390H (4c/8t), 16 GB RAM, NVIDIA MX450 (~2 GB VRAM) + Intel Iris Xe.
 
-Estimativa (não medida) para 1h de reunião: 30–60 min no total, quase tudo na
-transcrição; 5–10 min no resumo.
+Medido (ver `benchmark.md`): para 1h de reunião, ~10 min de transcrição na GPU
+(modo guloso) + ~9 min de resumo com `qwen3.5:4b`, ≈ 20 min no total.
 
 ## Primeiro passo: benchmark
 
