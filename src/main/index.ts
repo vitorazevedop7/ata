@@ -6,6 +6,7 @@ import { registerCapture } from './capture'
 import { registerJobsIpc } from './jobs'
 import { registerRecordingIpc } from './recordings'
 import { startRetention } from './retention'
+import { registerSearchIpc } from './search'
 
 // The installed app is named "Granola Local" while dev runs as "granola-local";
 // pin one data folder so both see the same recordings.
@@ -65,6 +66,7 @@ app.whenReady().then(() => {
   registerCapture()
   registerRecordingIpc()
   registerJobsIpc()
+  registerSearchIpc()
   startRetention()
   ipcMain.handle('app:copy', (_event, text: string) => clipboard.writeText(String(text)))
 

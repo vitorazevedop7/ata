@@ -88,3 +88,21 @@ export interface ResultsApi {
   transcript(id: string): Promise<Transcript | null>
   summary(id: string): Promise<Summary | null>
 }
+
+export interface SearchHit {
+  /** Recording the match belongs to. */
+  id: string
+  source: 'transcript' | 'summary'
+  /** Excerpt around the match, with "…" where it was cut. */
+  snippet: string
+  /** Start and end of the match inside `snippet`. */
+  match: [number, number]
+  /** Where the segment starts, for matches in the transcript. */
+  startMs?: number
+  channel?: Channel
+}
+
+export interface SearchApi {
+  /** Finds the text in transcripts and summaries, ignoring case and accents. */
+  query(text: string): Promise<SearchHit[]>
+}
