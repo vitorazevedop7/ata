@@ -1,7 +1,7 @@
 import { ipcMain, shell, type WebContents } from 'electron'
 import { appendFile, mkdir, stat } from 'fs/promises'
 import type { Channel, RecordingSummary } from '../shared/types'
-import { isBusy } from './jobs'
+import { isBusy, processRecording } from './jobs'
 import { CHANNELS, channelFile, recordingDir, recordingsDir } from './paths'
 import { deleteAudio, listIds, readMeta, summarize, writeMeta } from './store'
 
@@ -40,7 +40,15 @@ async function finishInterrupted(id: string): Promise<boolean> {
   meta.endedAt = await lastAudioAt(id, meta.startedAt)
   meta.interrupted = true
   await writeMeta(meta)
+  await processIfAudio(id)
   return true
+}
+
+/** Transcribes and summarizes a recording that just ended, unless nothing was captured. */
+async function processIfAudio(id: string): Promise<RecordingSummary | null> {
+  const item = await summarize(id)
+  if (item?.hasAudio && !item.hasTranscript) processRecording(id)
+  return item
 }
 
 /**
@@ -111,7 +119,7 @@ export function registerRecordingIpc(): void {
     const meta = await readMeta(id)
     meta.endedAt = new Date().toISOString()
     await writeMeta(meta)
-    return summarize(id)
+    return processIfAudio(id)
   })
 
   ipcMain.handle('recordings:list', async () => {
