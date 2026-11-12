@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'fs/promises'
 import type { ActionItem, Summary, Transcript } from '../shared/types'
 import { ensureModel, ensureOllama, generate } from './ollama'
 import { summaryFile, transcriptFile } from './paths'
+import { readMeta } from './store'
 
 /** ~7k tokens per call keeps prompt + answer inside a 16k context on CPU. */
 const CHUNK_CHARS = 24_000
@@ -20,12 +21,28 @@ Regras:
 - A transcrição é automática e pode ter palavras erradas. Se um trecho não fizer sentido, ignore-o em vez de adivinhar.
 - Listas vazias são válidas quando não houver decisões, tarefas ou pendências.`
 
+/** An imported file has one channel: everyone speaks on the same track. */
+const SYSTEM_IMPORTED = `Você resume transcrições de conversas a partir de um arquivo de áudio ou vídeo que o usuário importou.
+Todas as falas estão num único canal, com o rótulo "Conversa". Não dá para saber quem disse cada frase.
+
+Regras:
+- Escreva sempre em português do Brasil, mesmo que a conversa seja em outro idioma.
+- Use só o que está na transcrição. Não invente nomes, números, datas, fatos nem contexto.
+- Não atribua falas ao usuário nem a "Eu" ou "Outros". Se um nome aparecer na própria fala, ele pode ser citado.
+- A transcrição é automática e pode ter palavras erradas. Se um trecho não fizer sentido, ignore-o em vez de adivinhar.
+- Listas vazias são válidas quando não houver decisões, tarefas ou pendências.`
+
 const FIELDS = `Responda em JSON com:
 - "overview": 3 a 6 frases sobre o assunto da conversa e como ela terminou.
 - "keyPoints": até 8 pontos principais, curtos.
 - "decisions": decisões tomadas de forma explícita.
 - "actionItems": tarefas combinadas, cada uma com "task" e "owner" ("Eu", "Outros" ou "${UNKNOWN_OWNER}").
 - "openQuestions": dúvidas, divergências ou assuntos que ficaram sem conclusão.`
+
+const FIELDS_IMPORTED = FIELDS.replace(
+  `"owner" ("Eu", "Outros" ou "${UNKNOWN_OWNER}")`,
+  `"owner" sempre "${UNKNOWN_OWNER}"`
+)
 
 const stringList = { type: 'array', items: { type: 'string' } }
 const SCHEMA = {
@@ -50,9 +67,25 @@ const SCHEMA = {
   required: ['overview', 'keyPoints', 'decisions', 'actionItems', 'openQuestions']
 }
 
+const SCHEMA_IMPORTED = {
+  ...SCHEMA,
+  properties: {
+    ...SCHEMA.properties,
+    actionItems: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { task: { type: 'string' }, owner: { type: 'string', enum: [UNKNOWN_OWNER] } },
+        required: ['task', 'owner']
+      }
+    }
+  }
+}
+
 type Draft = Omit<Summary, 'version' | 'createdAt' | 'model'>
 
 const SPEAKER = { mic: 'Eu', system: 'Outros' } as const
+const SINGLE_SPEAKER = 'Conversa'
 
 function clock(ms: number): string {
   const s = Math.floor(ms / 1000)
@@ -60,11 +93,12 @@ function clock(ms: number): string {
 }
 
 /** Splits the transcript into consecutive chunks on line boundaries. */
-function chunk(transcript: Transcript): string[] {
+function chunk(transcript: Transcript, imported: boolean): string[] {
   const chunks: string[] = []
   let current = ''
   for (const segment of transcript.segments) {
-    const line = `[${clock(segment.startMs)}] ${SPEAKER[segment.channel]}: ${segment.text}\n`
+    const who = imported ? SINGLE_SPEAKER : SPEAKER[segment.channel]
+    const line = `[${clock(segment.startMs)}] ${who}: ${segment.text}\n`
     if (current && current.length + line.length > CHUNK_CHARS) {
       chunks.push(current)
       current = ''
@@ -108,10 +142,15 @@ export async function summarize(id: string, report: (percent: number) => void): 
   }
   if (transcript.segments.length === 0) throw new Error('A transcrição não tem falas para resumir.')
 
+  const imported = (await readMeta(id).catch(() => null))?.source === 'import'
+  const system = imported ? SYSTEM_IMPORTED : SYSTEM
+  const fields = imported ? FIELDS_IMPORTED : FIELDS
+  const schema = imported ? SCHEMA_IMPORTED : SCHEMA
+
   const tools = await ensureOllama()
   await ensureModel(tools)
 
-  const parts = chunk(transcript)
+  const parts = chunk(transcript, imported)
   const steps = parts.length > 1 ? parts.length + 1 : 1
   report(0)
 
@@ -123,9 +162,9 @@ export async function summarize(id: string, report: (percent: number) => void): 
         : ''
     drafts.push(
       await generate(tools, {
-        system: SYSTEM,
-        prompt: `${position}${FIELDS}\n\nTranscrição:\n"""\n${part}"""`,
-        schema: SCHEMA,
+        system,
+        prompt: `${position}${fields}\n\nTranscrição:\n"""\n${part}"""`,
+        schema,
         numCtx: NUM_CTX
       })
     )
@@ -135,12 +174,12 @@ export async function summarize(id: string, report: (percent: number) => void): 
   let final = drafts[0]
   if (drafts.length > 1) {
     final = await generate(tools, {
-      system: SYSTEM,
+      system,
       prompt:
         `Abaixo estão resumos parciais, em JSON, de trechos consecutivos da mesma conversa. ` +
-        `Junte tudo num único resumo da conversa inteira, sem repetir itens.\n\n${FIELDS}\n\n` +
+        `Junte tudo num único resumo da conversa inteira, sem repetir itens.\n\n${fields}\n\n` +
         drafts.map((draft, i) => `Trecho ${i + 1}:\n${draft}`).join('\n\n'),
-      schema: SCHEMA,
+      schema,
       numCtx: NUM_CTX
     })
   }

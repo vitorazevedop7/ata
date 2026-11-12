@@ -2,6 +2,13 @@ import type { Channel, JobStatus, RecordingSummary, Summary, Transcript } from '
 
 export const SPEAKER: Record<Channel, string> = { mic: 'Eu', system: 'Outros' }
 
+/** An imported file has one track, so nobody can be told apart. */
+export const SINGLE_SPEAKER = 'Conversa'
+
+export function speakerOf(channel: Channel, imported: boolean): string {
+  return imported ? SINGLE_SPEAKER : SPEAKER[channel]
+}
+
 const LANGUAGE: Record<string, string> = {
   pt: 'português',
   en: 'inglês',
@@ -89,14 +96,25 @@ export function audioNote(item: RecordingSummary): string {
   return `Áudio será apagado em ${plainDay.format(new Date(item.audioExpiresAt))}`
 }
 
-export function languagesOf(transcript: Transcript): string {
+export function languagesOf(transcript: Transcript, imported = false): string {
   return (Object.entries(transcript.languages) as [Channel, string][])
-    .map(([channel, lang]) => `${SPEAKER[channel]}: ${LANGUAGE[lang] ?? lang}`)
+    .map(([channel, lang]) =>
+      imported
+        ? capitalize(LANGUAGE[lang] ?? lang)
+        : `${SPEAKER[channel]}: ${LANGUAGE[lang] ?? lang}`
+    )
     .join(' · ')
 }
 
-export function describeJob(status: JobStatus): string {
-  const channel = status.channel ? (status.channel === 'mic' ? ' (Eu)' : ' (Outros)') : ''
+/** "Importado de reuniao.mp3" for imports, null for recordings made in the app. */
+export function importNote(item: RecordingSummary): string | null {
+  if (item.importedFileName === null) return null
+  return item.importedFileName ? `Importado de ${item.importedFileName}` : 'Importado'
+}
+
+export function describeJob(status: JobStatus, imported = false): string {
+  const channel =
+    status.channel && !imported ? (status.channel === 'mic' ? ' (Eu)' : ' (Outros)') : ''
   const percent = status.percent !== undefined ? ` ${status.percent}%` : ''
   switch (status.stage) {
     case 'queued':
@@ -114,9 +132,9 @@ export function describeJob(status: JobStatus): string {
   }
 }
 
-export function transcriptToText(transcript: Transcript): string {
+export function transcriptToText(transcript: Transcript, imported = false): string {
   return transcript.segments
-    .map((s) => `[${formatClock(s.startMs / 1000)}] ${SPEAKER[s.channel]}: ${s.text}`)
+    .map((s) => `[${formatClock(s.startMs / 1000)}] ${speakerOf(s.channel, imported)}: ${s.text}`)
     .join('\n')
 }
 
