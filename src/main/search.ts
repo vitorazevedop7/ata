@@ -1,8 +1,8 @@
 import { ipcMain } from 'electron'
 import { readFile } from 'fs/promises'
 import type { SearchHit, Summary, Transcript } from '../shared/types'
-import { summaryFile, transcriptFile } from './paths'
-import { listIds } from './store'
+import { metaFile, summaryFile, transcriptFile } from './paths'
+import { listIds, type RecordingMeta } from './store'
 
 /** Matches shown per recording, so one long meeting doesn't bury the others. */
 const HITS_PER_RECORDING = 8
@@ -87,13 +87,17 @@ function summaryTexts(summary: Summary): string[] {
 }
 
 async function searchRecording(id: string, query: string): Promise<SearchHit[]> {
-  const [transcript, summary] = await Promise.all([
+  const [transcript, summary, meta] = await Promise.all([
     readJson<Transcript>(transcriptFile(id)),
-    readJson<Summary>(summaryFile(id))
+    readJson<Summary>(summaryFile(id)),
+    readJson<RecordingMeta>(metaFile(id))
   ])
   const hits: SearchHit[] = []
 
-  for (const text of summary ? summaryTexts(summary) : []) {
+  // The title the list shows: the user's name for it, else the suggested one.
+  const title = meta?.title || summary?.title
+  const texts = [...(title ? [title] : []), ...(summary ? summaryTexts(summary) : [])]
+  for (const text of texts) {
     if (hits.length >= HITS_PER_RECORDING) return hits
     const found = typeof text === 'string' ? excerpt(text, query) : null
     if (found) hits.push({ id, source: 'summary', ...found })

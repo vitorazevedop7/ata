@@ -24,7 +24,7 @@ identidade visual em `docs/design.md`.
   - `ask.ts`: perguntas sobre uma gravação: resumo + trechos da transcrição escolhidos por palavras, resposta do Ollama com horários citados, histórico em `chat.json`.
   - `search.ts`: busca por texto em todas as gravações.
   - `retention.ts`: apaga o áudio 7 dias depois da gravação (na abertura e a cada hora), e no mínimo um dia depois da transcrição. Áudio nunca transcrito não é apagado. Transcrição e resumo ficam. Na abertura também limpa arquivos de trabalho esquecidos e retoma a fila.
-  - `store.ts` (meta.json, apagar áudio, `claimId` reserva o id criando a pasta, `writeFileAtomic` para todo JSON salvo), `paths.ts`, `tools.ts` (onde ficam ffmpeg, whisper, Ollama e modelos), `process.ts`, `legacy.ts` (move as pastas do nome antigo).
+  - `store.ts` (meta.json, apagar áudio, `renameRecording`: o nome dado pelo usuário fica em `meta.title` e vale mais que o `title` sugerido no `summary.json`; `claimId` reserva o id criando a pasta, `writeFileAtomic` para todo JSON salvo), `paths.ts`, `tools.ts` (onde ficam ffmpeg, whisper, Ollama e modelos), `process.ts`, `legacy.ts` (move as pastas do nome antigo).
 - `src/preload`: ponte `window.api` (`recording`, `importer`, `jobs`, `results`, `search`, `copyText`).
 - `src/renderer`: interface React. `App.tsx` (barra, lista), `components/RecordingDetail.tsx` (transcrição e resumo), `components/controls.tsx` (menus, confirmação, copiar, progresso), `format.ts`.
 - `src/shared`: tipos usados pelos três.

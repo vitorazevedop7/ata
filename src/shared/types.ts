@@ -16,7 +16,14 @@ export interface RecordingSummary {
   hasSummary: boolean
   /** Name of the imported file, or null for a recording made in the app. */
   importedFileName: string | null
+  /** The name the user gave, else the one the summary suggested; null shows the date. */
+  title: string | null
+  /** True when `title` was typed by the user rather than suggested by the summary. */
+  titleIsCustom: boolean
 }
+
+/** Longest title kept, in characters. */
+export const MAX_TITLE = 120
 
 export interface TranscriptSegment {
   channel: Channel
@@ -43,6 +50,8 @@ export interface Summary {
   version: 1
   createdAt: string
   model: string
+  /** Short title suggested by the model; missing in summaries made before titles existed. */
+  title?: string
   overview: string
   keyPoints: string[]
   decisions: string[]
@@ -96,6 +105,8 @@ export interface RecordingApi {
   list(): Promise<RecordingSummary[]>
   deleteAudio(id: string): Promise<void>
   openFolder(id?: string): Promise<void>
+  /** Names the recording; an empty title goes back to the one the summary suggested. */
+  rename(id: string, title: string): Promise<void>
 }
 
 /** Extensions accepted by "Importar" and by dropping files on the window. */

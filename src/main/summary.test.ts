@@ -73,6 +73,13 @@ describe('parseDraft', () => {
     })
   })
 
+  it('keeps a cleaned-up title and omits a missing one', () => {
+    expect(parseDraft('{"title": " \\"Escopo do piloto.\\" ", "overview": "x"}').title).toBe(
+      'Escopo do piloto'
+    )
+    expect(parseDraft('{"overview": "x"}')).not.toHaveProperty('title')
+  })
+
   it('reads JSON wrapped in text or a code fence', () => {
     const reply = 'Claro! Aqui está:\n```json\n{"overview": "Tudo certo."}\n```\nAbraços.'
     expect(parseDraft(reply).overview).toBe('Tudo certo.')

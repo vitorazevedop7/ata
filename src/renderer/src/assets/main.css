@@ -434,9 +434,21 @@ button {
 }
 
 .row-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: -0.006em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The time under a named meeting (the name took its place in the title). */
+.row-when {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--cover-ink-2);
   font-variant-numeric: tabular-nums;
 }
 
@@ -458,6 +470,7 @@ button {
 }
 
 .rows li.selected .row-length,
+.rows li.selected .row-when,
 .rows li.selected .row-state,
 .rows li.selected .row-file {
   color: var(--ink-2);
@@ -768,6 +781,54 @@ button {
   font-weight: 650;
   letter-spacing: -0.028em;
   text-wrap: balance;
+}
+
+/* The title is a button that turns into a field: it looks like plain text until hovered. */
+.sheet-title-button {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-wrap: inherit;
+  cursor: text;
+}
+
+.sheet-title-pencil {
+  display: inline-block;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-left: 0.5rem;
+  vertical-align: 0.15em;
+  color: var(--ink-3);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+.sheet-title-button:hover .sheet-title-pencil,
+.sheet-title-button:focus-visible .sheet-title-pencil {
+  opacity: 1;
+}
+
+.sheet-title-field {
+  width: 100%;
+  margin: 0;
+  padding: 0 0 0.125rem;
+  border: none;
+  border-bottom: 2px solid var(--accent);
+  border-radius: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.sheet-title-field::placeholder {
+  color: var(--ink-3);
 }
 
 .sheet-meta {
@@ -1679,6 +1740,7 @@ button {
   }
 
   .rows li.selected .row-length,
+  .rows li.selected .row-when,
   .rows li.selected .row-state,
   .rows li.selected .row-file {
     color: var(--cover-ink-2);

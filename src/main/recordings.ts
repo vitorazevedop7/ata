@@ -3,7 +3,15 @@ import { appendFile, mkdir, stat } from 'fs/promises'
 import type { Channel, RecordingSummary } from '../shared/types'
 import { isBusy, processRecording } from './jobs'
 import { CHANNELS, channelFile, recordingDir, recordingsDir } from './paths'
-import { claimRecordingId, deleteAudio, listIds, readMeta, summarize, writeMeta } from './store'
+import {
+  claimRecordingId,
+  deleteAudio,
+  listIds,
+  readMeta,
+  renameRecording,
+  summarize,
+  writeMeta
+} from './store'
 
 /** Recordings being captured right now, by id. */
 const active = new Set<string>()
@@ -125,6 +133,10 @@ export function registerRecordingIpc(): void {
     if (!(await readMeta(id)).endedAt) throw new Error('A gravação ainda está em andamento.')
     await deleteAudio(id, 'manual')
   })
+
+  ipcMain.handle('recording:rename', (_event, id: string, title: string) =>
+    renameRecording(id, title)
+  )
 
   ipcMain.handle('recordings:open-folder', async (_event, id?: string) => {
     const dir = id ? recordingDir(id) : recordingsDir()
