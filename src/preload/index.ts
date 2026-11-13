@@ -19,6 +19,7 @@ const recording: RecordingApi & { onChanged(listener: () => void): () => void } 
   list: () => ipcRenderer.invoke('recordings:list'),
   deleteAudio: (id: string) => ipcRenderer.invoke('recording:delete-audio', id),
   rename: (id: string, title: string) => ipcRenderer.invoke('recording:rename', id, title),
+  remove: (id: string) => ipcRenderer.invoke('recording:delete', id),
   openFolder: (id?: string) => ipcRenderer.invoke('recordings:open-folder', id),
   onChanged: (listener) => {
     const handler = (): void => listener()

@@ -169,6 +169,16 @@ function App(): React.JSX.Element {
     setView('detail')
   }
 
+  /** After a recording goes to the trash, opens the next older one (or the newer one). */
+  const onDeleted = (id: string): void => {
+    const index = recordings.findIndex((item) => item.id === id)
+    const next = recordings[index + 1] ?? recordings[index - 1] ?? null
+    setSelectedId(next?.id ?? null)
+    setFocusMs(undefined)
+    if (!next) setView('list')
+    void refresh()
+  }
+
   /** Opens a search match; one from the transcript scrolls to where it was said. */
   const openHit = (hit: SearchHit): void => {
     setSelectedId(hit.id)
@@ -345,6 +355,7 @@ function App(): React.JSX.Element {
             onBack={() => setView('list')}
             onError={setError}
             onChanged={() => void refresh()}
+            onDeleted={() => onDeleted(selected.id)}
             focusMs={focusMs}
           />
         ) : (

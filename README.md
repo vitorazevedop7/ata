@@ -28,6 +28,7 @@ saem do computador, e não há API paga nem conta para criar.
   acentos nem maiúsculas.
 - **Apaga o áudio sozinho depois de 7 dias.** A transcrição e o resumo ficam; o áudio, que é o
   dado mais sensível e mais pesado, não. Áudio que ainda não foi transcrito nunca é apagado.
+  A qualquer momento dá para apagar só o áudio ou a gravação inteira, que vai para a Lixeira.
 - Tudo entra numa **fila em segundo plano**: a gravação termina e a transcrição começa; a
   transcrição termina e o resumo começa, com o progresso visível na lista.
 

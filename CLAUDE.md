@@ -17,7 +17,7 @@ identidade visual em `docs/design.md`.
 
 - `src/main`: processo principal.
   - `capture.ts`: microfone + loopback do sistema.
-  - `recordings.ts`: IPC das gravações (gravar, listar, apagar áudio).
+  - `recordings.ts`: IPC das gravações (gravar, listar, renomear, apagar áudio, apagar a gravação inteira: a pasta vai para a Lixeira com `shell.trashItem`, depois de `releaseRecording` tirar da fila as tarefas dela).
   - `importer.ts`: importa arquivo de áudio ou vídeo (botão Importar ou arrastar). O ffmpeg converte para opus mono em `system.webm`; o `meta.json` ganha `source: 'import'`, o nome do arquivo e `importedAt` (o prazo de 7 dias conta a partir da importação). Na interface e no resumo, o falante único aparece como "Conversa".
   - `jobs.ts`: fila única de tarefas (transcrever, resumir, perguntar), uma por vez, com status para a interface. Toda gravação que termina (parada, importada ou fechada depois de uma queda) entra sozinha na fila; quando a transcrição termina, o resumo é enfileirado na frente. A fila fica só na memória: na abertura, `resumePendingJobs` enfileira de novo as transcrições e os resumos que não rodaram.
   - `transcription.ts`: ffmpeg → whisper.cpp. `summary.ts` e `ollama.ts`: resumo com o Ollama local, em partes para conversas longas.
