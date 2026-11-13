@@ -1,4 +1,4 @@
-import { type ChildProcess, spawn } from 'child_process'
+import { type ChildProcess, spawn, spawnSync } from 'child_process'
 import { resolveOllama, type OllamaTools } from './tools'
 
 let server: ChildProcess | null = null
@@ -58,10 +58,52 @@ export interface GenerateOptions {
 }
 
 /**
+ * Right after Whisper releases the GPU, a freshly started Ollama sometimes fails
+ * to initialize CUDA ("shared object initialization failed") and stays broken
+ * until restarted, so such an error is worth one more try on a fresh server.
+ */
+function isCudaFailure(error: unknown): boolean {
+  return error instanceof Error && /CUDA error/i.test(error.message)
+}
+
+/** Kills the server this app started, with its model runners. */
+function killServer(): void {
+  if (!server) return
+  if (server.pid) {
+    spawnSync('taskkill', ['/pid', String(server.pid), '/t', '/f'], { windowsHide: true })
+  } else {
+    server.kill()
+  }
+  server = null
+}
+
+/**
  * Streams a generation so long CPU runs never hit an HTTP header timeout,
- * and returns the full response text.
+ * and returns the full response text. A CUDA failure before any text is
+ * retried once on a restarted server.
  */
 export async function generate(tools: OllamaTools, options: GenerateOptions): Promise<string> {
+  let produced = false
+  const attempt = (): Promise<string> =>
+    generateOnce(tools, {
+      ...options,
+      onToken: (text) => {
+        produced = true
+        options.onToken?.(text)
+      }
+    })
+  try {
+    return await attempt()
+  } catch (error) {
+    if (produced || options.signal?.aborted || !isCudaFailure(error)) throw error
+    killServer()
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await ensureOllama()
+    return await attempt()
+  }
+}
+
+async function generateOnce(tools: OllamaTools, options: GenerateOptions): Promise<string> {
   const controller = new AbortController()
   controllers.add(controller)
   const abort = (): void => controller.abort()
@@ -112,6 +154,5 @@ export async function generate(tools: OllamaTools, options: GenerateOptions): Pr
 export function stopOllama(): void {
   for (const controller of controllers) controller.abort()
   controllers.clear()
-  server?.kill()
-  server = null
+  killServer()
 }
