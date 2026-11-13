@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- Ata: a page of the minutes ledger on its navy cloth cover.
+       The red rule splits "Outros" (left) from "Eu" (right), as in the transcript. -->
+  <defs>
+    <linearGradient id="cover" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#24365a"/>
+      <stop offset="1" stop-color="#16223b"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6f7fa"/>
+      <stop offset="1" stop-color="#e3e7ee"/>
+    </linearGradient>
+  </defs>
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#cover)"/>
+  <rect x="236" y="196" width="552" height="632" rx="56" fill="#0d1526" opacity="0.35" transform="translate(0 18)"/>
+  <rect x="236" y="196" width="552" height="632" rx="56" fill="url(#paper)"/>
+  <path d="M512 196v632" stroke="#d23f2e" stroke-width="28"/>
+  <g stroke="#1a1d25" stroke-width="44" stroke-linecap="round">
+    <path d="M318 330h128"/>
+    <path d="M350 420h96"/>
+    <path d="M578 530h128"/>
+    <path d="M578 620h84"/>
+    <path d="M334 720h112"/>
+  </g>
+</svg>
