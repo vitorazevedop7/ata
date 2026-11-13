@@ -6,7 +6,7 @@ App desktop que grava reuniões e ligações no computador, transcreve e gera um
 decisões e tarefas. **Tudo roda na sua máquina:** o áudio, a transcrição e o resumo nunca
 saem do computador, e não há API paga nem conta para criar.
 
-![Resumo de uma reunião no Ata](docs/images/resumo.png)
+![Ata: suas reuniões viram atas, sem sair do computador](docs/images/capa.png)
 
 ## O que ele faz
 

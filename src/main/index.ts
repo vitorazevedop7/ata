@@ -29,7 +29,8 @@ function createWindow(): void {
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#13161d' : '#eef0f4',
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    // Windows takes the icon from the exe once installed; this covers `npm run dev` and Linux.
+    icon,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: true
