@@ -6,7 +6,7 @@ identidade visual em `docs/design.md`.
 
 ## Comandos
 
-- `npm run dev`: abre o app em modo de desenvolvimento.
+- `npm run dev`: abre o app em modo de desenvolvimento. Só uma cópia do app roda por vez (as duas usariam a mesma pasta de gravações): com o app instalado aberto, o `npm run dev` só traz a janela dele para a frente e fecha.
 - `npm test`: testes (Vitest) da lógica que não depende do Electron.
 - `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`: rode os quatro antes de dizer que uma mudança está pronta.
 - `npm run setup:tools`: instala ffmpeg, whisper.cpp, Ollama e os modelos (`scripts/setup-tools.ps1` no Windows, `setup-tools.sh` com Homebrew no macOS).
