@@ -1,11 +1,18 @@
 import { app, BrowserWindow, ipcMain } from 'electron'
 import { readFile } from 'fs/promises'
-import type { JobKind, JobStatus, Summary, TranscribeOptions, Transcript } from '../shared/types'
+import type {
+  JobKind,
+  JobStatus,
+  RecordingSummary,
+  Summary,
+  TranscribeOptions,
+  Transcript
+} from '../shared/types'
 import { ask, readChat } from './ask'
 import { stopOllama } from './ollama'
 import { recordingDir, summaryFile, transcriptFile } from './paths'
 import { killAll } from './process'
-import { deleteAudio } from './store'
+import { deleteAudio, listIds, summarize as describeRecording } from './store'
 import { summarize } from './summary'
 import { transcribe } from './transcription'
 
@@ -160,6 +167,32 @@ export function enqueue(id: string, kind: JobKind, options?: TranscribeOptions):
  */
 export function processRecording(id: string): void {
   enqueue(id, 'transcribe', { deleteAudio: false })
+}
+
+/**
+ * What a finished recording still needs: the queue lives in memory, so work that
+ * was waiting or running when the app closed is lost and has to be found again.
+ */
+export function pendingJob(item: RecordingSummary): 'transcribe' | 'summarize' | null {
+  if (!item.endedAt) return null
+  if (!item.hasTranscript) return item.hasAudio ? 'transcribe' : null
+  return item.hasSummary ? null : 'summarize'
+}
+
+/** Queues, newest first, the transcriptions and summaries that never ran. */
+export async function resumePendingJobs(): Promise<void> {
+  const items = (await Promise.all((await listIds()).map(describeRecording)))
+    .filter((item): item is RecordingSummary => item !== null)
+    .sort((a, b) => b.id.localeCompare(a.id))
+  for (const item of items) {
+    const kind = pendingJob(item)
+    if (kind === 'transcribe') processRecording(item.id)
+    if (kind === 'summarize') {
+      // A transcript with no speech has nothing to summarize.
+      const transcript = await readJson<Transcript>(transcriptFile(item.id))
+      if (transcript?.segments.length) enqueue(item.id, 'summarize')
+    }
+  }
 }
 
 async function readJson<T>(path: string): Promise<T | null> {

@@ -91,6 +91,7 @@ export function formatLength(item: RecordingSummary): string | null {
 export function audioNote(item: RecordingSummary): string {
   if (item.audioDeletedAt) return 'Áudio apagado'
   if (!item.hasAudio) return 'Sem áudio'
+  if (!item.audioExpiresAt) return 'Áudio guardado até a transcrição'
   const days = Math.ceil((Date.parse(item.audioExpiresAt) - Date.now()) / 86_400_000)
   if (days <= 1) return 'Áudio será apagado hoje'
   return `Áudio será apagado em ${plainDay.format(new Date(item.audioExpiresAt))}`
