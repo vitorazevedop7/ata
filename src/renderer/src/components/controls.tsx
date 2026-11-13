@@ -11,12 +11,15 @@ export function Disclosure({
   className = 'btn',
   disabled,
   align = 'end',
+  onOpen,
   children
 }: {
   label: ReactNode
   className?: string
   disabled?: boolean
   align?: 'start' | 'end'
+  /** Called each time the panel opens, e.g. to start it from its first step. */
+  onOpen?: () => void
   children: (close: () => void) => ReactNode
 }): React.JSX.Element {
   const [open, setOpen] = useState(false)
@@ -45,7 +48,10 @@ export function Disclosure({
         aria-haspopup="true"
         aria-expanded={open}
         disabled={disabled}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (!open) onOpen?.()
+          setOpen(!open)
+        }}
       >
         {label}
       </button>
@@ -109,46 +115,95 @@ export function TranscribeMenu({
   )
 }
 
-export function DeleteAudioButton({
-  onConfirm,
-  hasTranscript
+type DeleteChoice = 'audio' | 'recording'
+
+/**
+ * "Apagar": a menu with "Só o áudio" and "A gravação inteira", each confirmed
+ * before anything happens. With only one of them possible, it asks right away.
+ */
+export function DeleteMenu({
+  canDeleteAudio,
+  hasTranscript,
+  onDeleteAudio,
+  onDeleteRecording
 }: {
-  onConfirm: () => Promise<void>
+  canDeleteAudio: boolean
   hasTranscript: boolean
+  onDeleteAudio: () => Promise<void>
+  onDeleteRecording: () => Promise<void>
 }): React.JSX.Element {
+  const only: DeleteChoice | null = canDeleteAudio ? null : 'recording'
+  const [choice, setChoice] = useState<DeleteChoice | null>(only)
+
   return (
     <Disclosure
       className="btn plain danger"
       label={
         <>
-          <TrashIcon /> Apagar áudio
+          <TrashIcon /> Apagar
         </>
       }
+      onOpen={() => setChoice(only)}
     >
-      {(close) => (
-        <div className="confirm">
-          <p className="confirm-title">Apagar o áudio desta gravação?</p>
-          <p className="confirm-text">
-            {hasTranscript
-              ? 'A transcrição e o resumo continuam. Não dá para desfazer.'
-              : 'Ela ainda não foi transcrita e, sem o áudio, não vai dar mais. Não dá para desfazer.'}
-          </p>
-          <div className="confirm-actions">
-            <button className="btn" onClick={close}>
-              Cancelar
-            </button>
-            <button
-              className="btn destructive"
-              onClick={async () => {
-                close()
-                await onConfirm()
-              }}
-            >
-              Apagar
-            </button>
+      {(close) => {
+        const confirm = async (action: () => Promise<void>): Promise<void> => {
+          close()
+          await action()
+        }
+
+        if (choice === null) {
+          return (
+            <div className="menu" role="menu">
+              <button role="menuitem" className="menu-item" onClick={() => setChoice('audio')}>
+                <span className="menu-title">Só o áudio</span>
+                <span className="menu-hint">
+                  {hasTranscript
+                    ? 'A transcrição e o resumo continuam.'
+                    : 'Sem o áudio, ela não vai mais poder ser transcrita.'}
+                </span>
+              </button>
+              <button role="menuitem" className="menu-item" onClick={() => setChoice('recording')}>
+                <span className="menu-title">A gravação inteira</span>
+                <span className="menu-hint">Áudio, transcrição, resumo e perguntas.</span>
+              </button>
+            </div>
+          )
+        }
+
+        return choice === 'audio' ? (
+          <div className="confirm">
+            <p className="confirm-title">Apagar o áudio desta gravação?</p>
+            <p className="confirm-text">
+              {hasTranscript
+                ? 'A transcrição e o resumo continuam. Não dá para desfazer.'
+                : 'Ela ainda não foi transcrita e, sem o áudio, não vai dar mais. Não dá para desfazer.'}
+            </p>
+            <div className="confirm-actions">
+              <button className="btn" onClick={close}>
+                Cancelar
+              </button>
+              <button className="btn destructive" onClick={() => void confirm(onDeleteAudio)}>
+                Apagar áudio
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="confirm">
+            <p className="confirm-title">Apagar esta gravação?</p>
+            <p className="confirm-text">
+              Áudio, transcrição, resumo e perguntas vão para a Lixeira. Dá para recuperar de lá.
+            </p>
+            <div className="confirm-actions">
+              <button className="btn" onClick={close}>
+                Cancelar
+              </button>
+              <button className="btn destructive" onClick={() => void confirm(onDeleteRecording)}>
+                Apagar gravação
+              </button>
+            </div>
+          </div>
+        )
+      }}
     </Disclosure>
   )
 }

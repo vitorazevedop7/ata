@@ -107,6 +107,8 @@ export interface RecordingApi {
   openFolder(id?: string): Promise<void>
   /** Names the recording; an empty title goes back to the one the summary suggested. */
   rename(id: string, title: string): Promise<void>
+  /** Moves the whole recording (audio, transcript, summary, questions) to the system trash. */
+  remove(id: string): Promise<void>
 }
 
 /** Extensions accepted by "Importar" and by dropping files on the window. */
