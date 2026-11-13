@@ -85,6 +85,39 @@ function killServer(): void {
  * retried once on a restarted server.
  */
 export async function generate(tools: OllamaTools, options: GenerateOptions): Promise<string> {
+  if (options.schema && !structuredOutput) return generate(tools, withSchemaInPrompt(options))
+  try {
+    return await generateWithRetry(tools, options)
+  } catch (error) {
+    if (!(error instanceof StructuredOutputUnavailable)) throw error
+    structuredOutput = false
+    return generate(tools, withSchemaInPrompt(options))
+  }
+}
+
+/**
+ * Some Ollama builds can't constrain the output to a schema (the Homebrew build on
+ * Apple Silicon answers 501). Then the schema goes in the prompt instead, and the
+ * caller extracts the JSON from the text (see extractJson in summary.ts).
+ */
+class StructuredOutputUnavailable extends Error {}
+
+function isStructuredOutputError(message: string): boolean {
+  return /structured output|xgrammar|not implemented|501/i.test(message)
+}
+let structuredOutput = true
+
+function withSchemaInPrompt(options: GenerateOptions): GenerateOptions {
+  const { schema, ...rest } = options
+  return {
+    ...rest,
+    system:
+      `${options.system}\n\nResponda apenas com um objeto JSON válido, sem texto antes ou ` +
+      `depois, que siga este JSON Schema:\n${JSON.stringify(schema)}`
+  }
+}
+
+async function generateWithRetry(tools: OllamaTools, options: GenerateOptions): Promise<string> {
   let produced = false
   const attempt = (): Promise<string> =>
     generateOnce(tools, {
@@ -126,7 +159,13 @@ async function generateOnce(tools: OllamaTools, options: GenerateOptions): Promi
         options: { num_ctx: options.numCtx, temperature: 0.2 }
       })
     })
-    if (!res.ok || !res.body) throw new Error(`Ollama respondeu ${res.status}: ${await res.text()}`)
+    if (!res.ok || !res.body) {
+      const message = await res.text()
+      if (options.schema && (res.status === 501 || isStructuredOutputError(message))) {
+        throw new StructuredOutputUnavailable(message)
+      }
+      throw new Error(`Ollama respondeu ${res.status}: ${message}`)
+    }
 
     let text = ''
     let buffer = ''
@@ -138,7 +177,12 @@ async function generateOnce(tools: OllamaTools, options: GenerateOptions): Promi
       for (const line of lines) {
         if (!line.trim()) continue
         const event = JSON.parse(line) as { response?: string; error?: string }
-        if (event.error) throw new Error(`Ollama: ${event.error}`)
+        if (event.error) {
+          if (options.schema && !text && isStructuredOutputError(event.error)) {
+            throw new StructuredOutputUnavailable(event.error)
+          }
+          throw new Error(`Ollama: ${event.error}`)
+        }
         if (event.response) {
           text += event.response
           options.onToken?.(text)

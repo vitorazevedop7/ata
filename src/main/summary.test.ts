@@ -73,6 +73,11 @@ describe('parseDraft', () => {
     })
   })
 
+  it('reads JSON wrapped in text or a code fence', () => {
+    const reply = 'Claro! Aqui está:\n```json\n{"overview": "Tudo certo."}\n```\nAbraços.'
+    expect(parseDraft(reply).overview).toBe('Tudo certo.')
+  })
+
   it('throws on text that is not JSON', () => {
     expect(() => parseDraft('Claro! Aqui está o resumo:')).toThrow()
   })
