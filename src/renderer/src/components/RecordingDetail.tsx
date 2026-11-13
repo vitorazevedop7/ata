@@ -62,8 +62,10 @@ function SheetTitle({
       return
     }
     if (next === (title ?? '')) return
-    // An empty name goes back to the suggested one, which only the reload knows.
-    if (next) setSaved({ name: next, over: item.title })
+    // An empty name goes back to the suggested one, which only the reload knows; it
+    // also drops any earlier name, or that name would come back once the list
+    // returns to the title it was saved over.
+    setSaved(next ? { name: next, over: item.title } : null)
     try {
       await window.api.recording.rename(item.id, next)
       onRenamed()
