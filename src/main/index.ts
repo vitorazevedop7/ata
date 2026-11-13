@@ -6,12 +6,16 @@ import { registerCapture } from './capture'
 import { registerJobsIpc } from './jobs'
 import { registerImportIpc } from './importer'
 import { registerRecordingIpc } from './recordings'
+import { adoptLegacyDir, LEGACY_NAME } from './legacy'
 import { startRetention } from './retention'
 import { registerSearchIpc } from './search'
 
-// The installed app is named "Granola Local" while dev runs as "granola-local";
-// pin one data folder so both see the same recordings.
-app.setPath('userData', join(app.getPath('appData'), 'granola-local'))
+// Pin one data folder so the installed app and `npm run dev` see the same recordings.
+// Recordings made before the rename are moved over on first launch.
+app.setPath(
+  'userData',
+  adoptLegacyDir(join(app.getPath('appData'), 'ata'), join(app.getPath('appData'), LEGACY_NAME))
+)
 
 function createWindow(): void {
   // Create the browser window.
@@ -20,7 +24,7 @@ function createWindow(): void {
     height: 760,
     minWidth: 420,
     minHeight: 520,
-    title: 'Granola Local',
+    title: 'Ata',
     // Matches the page background so the window never flashes white on open.
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#13161d' : '#eef0f4',
     show: false,
@@ -55,7 +59,7 @@ function createWindow(): void {
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
   // Set app user model id for windows
-  electronApp.setAppUserModelId('io.github.vitorazevedop7.granolalocal')
+  electronApp.setAppUserModelId('io.github.vitorazevedop7.ata')
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.

@@ -93,7 +93,7 @@ function clock(ms: number): string {
 }
 
 /** Splits the transcript into consecutive chunks on line boundaries. */
-function chunk(transcript: Transcript, imported: boolean): string[] {
+export function chunk(transcript: Transcript, imported: boolean): string[] {
   const chunks: string[] = []
   let current = ''
   for (const segment of transcript.segments) {
@@ -109,7 +109,7 @@ function chunk(transcript: Transcript, imported: boolean): string[] {
   return chunks
 }
 
-function parseDraft(text: string): Draft {
+export function parseDraft(text: string): Draft {
   const raw = JSON.parse(text) as Partial<Draft>
   const list = (value: unknown): string[] =>
     Array.isArray(value)

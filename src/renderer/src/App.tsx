@@ -189,7 +189,7 @@ function App(): React.JSX.Element {
       <aside className="cover" aria-label="Gravações">
         <header className="cover-head">
           <BrandMark className="brand-mark" />
-          <span className="brand-name">Granola Local</span>
+          <span className="brand-name">Ata</span>
           <ImportButton busy={imports.progress !== null} onClick={imports.pick} />
         </header>
         {imports.progress && <ImportStatus progress={imports.progress} />}

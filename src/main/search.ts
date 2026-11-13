@@ -30,12 +30,12 @@ function fold(text: string): Folded {
   return { text: folded, map }
 }
 
-function normalizeQuery(query: string): string {
+export function normalizeQuery(query: string): string {
   return fold(query.trim().replace(/\s+/g, ' ')).text
 }
 
 /** Finds the query in the text and returns an excerpt around the first match. */
-function excerpt(raw: string, query: string): Pick<SearchHit, 'snippet' | 'match'> | null {
+export function excerpt(raw: string, query: string): Pick<SearchHit, 'snippet' | 'match'> | null {
   const text = raw.trim()
   const folded = fold(text)
   const at = folded.text.indexOf(query)

@@ -30,7 +30,7 @@
 
 - 1h de reunião deve dar ~23 mil tokens: ~7 min de leitura + ~1,5 min de geração, **~9 min**.
 - 23 mil tokens não cabem no contexto de 16 384 usado aqui. Para reuniões longas: aumentar `num_ctx` para 32 768 (mais RAM) ou resumir em partes e juntar.
-- Qualidade: o resumo pega bem os temas e as divergências, e o JSON veio válido. Mas **erra quem disse o quê** e inventou detalhes (ex.: "mulher que sofreu estupro"). Parte disso é do teste: o áudio é um canal só, sem rótulo de falante. No app, os canais "Eu"/"Outros" ajudam, mas o prompt deve pedir para não atribuir falas sem certeza.
+- Qualidade: o resumo pega bem os temas e as divergências, e o JSON veio válido. Mas **erra quem disse o quê** e inventou detalhes que não estavam no áudio. Parte disso é do teste: o áudio é um canal só, sem rótulo de falante. No app, os canais "Eu"/"Outros" ajudam, mas o prompt deve pedir para não atribuir falas sem certeza.
 
 ## Pipeline completo para 1h de reunião
 
