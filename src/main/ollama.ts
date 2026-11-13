@@ -18,7 +18,7 @@ export async function ensureOllama(): Promise<OllamaTools> {
   const tools = resolveOllama()
   if (await isUp(tools.host)) return tools
   if (!tools.exe) {
-    throw new Error('Ollama não está rodando e o ollama.exe não foi encontrado.')
+    throw new Error('O Ollama não está rodando e não foi encontrado neste computador.')
   }
   if (!server) {
     server = spawn(tools.exe, ['serve'], {
@@ -69,9 +69,11 @@ function isCudaFailure(error: unknown): boolean {
 /** Kills the server this app started, with its model runners. */
 function killServer(): void {
   if (!server) return
-  if (server.pid) {
+  if (process.platform === 'win32' && server.pid) {
+    // /t also ends the model runners, which outlive their parent on Windows.
     spawnSync('taskkill', ['/pid', String(server.pid), '/t', '/f'], { windowsHide: true })
   } else {
+    // Elsewhere `ollama serve` stops its runners when it receives SIGTERM.
     server.kill()
   }
   server = null
