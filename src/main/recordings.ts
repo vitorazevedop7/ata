@@ -3,15 +3,7 @@ import { appendFile, mkdir, stat } from 'fs/promises'
 import type { Channel, RecordingSummary } from '../shared/types'
 import { isBusy, processRecording } from './jobs'
 import { CHANNELS, channelFile, recordingDir, recordingsDir } from './paths'
-import { deleteAudio, listIds, readMeta, summarize, writeMeta } from './store'
-
-export function newId(now: Date): string {
-  const pad = (n: number): string => String(n).padStart(2, '0')
-  return (
-    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-` +
-    `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-  )
-}
+import { claimRecordingId, deleteAudio, listIds, readMeta, summarize, writeMeta } from './store'
 
 /** Recordings being captured right now, by id. */
 const active = new Set<string>()
@@ -98,10 +90,8 @@ function watchRecorder(sender: WebContents, id: string): void {
 
 export function registerRecordingIpc(): void {
   ipcMain.handle('recording:start', async (event) => {
-    const now = new Date()
-    const id = newId(now)
-    await mkdir(recordingDir(id), { recursive: true })
-    await writeMeta({ id, startedAt: now.toISOString() })
+    const { id, startedAt } = await claimRecordingId(new Date())
+    await writeMeta({ id, startedAt: startedAt.toISOString() })
     active.add(id)
     watchRecorder(event.sender, id)
     return id
