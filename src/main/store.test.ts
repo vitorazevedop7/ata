@@ -5,17 +5,22 @@ import {
   readdirSync,
   readFileSync,
   utimesSync,
-  writeFileSync
+  writeFileSync,
+  rmSync
 } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, expect, it } from 'vitest'
+import { MAX_TITLE } from '../shared/types'
 import { recordingsDir } from './paths'
 import {
   audioExpiresAt,
   claimId,
+  cleanTitle,
   newId,
   removeLeftoverWorkFiles,
+  renameRecording,
+  summarize,
   WORK_FILE,
   writeFileAtomic,
   type RecordingMeta
@@ -130,5 +135,54 @@ describe('removeLeftoverWorkFiles', () => {
 
     expect(await removeLeftoverWorkFiles()).toBe(2)
     expect(readdirSync(dir).sort()).toEqual(['meta.json', 'mic.webm', 'system.16k.wav'])
+  })
+})
+
+describe('cleanTitle', () => {
+  it('keeps one line without wrapping quotes or a final period', () => {
+    expect(cleanTitle('  "Escopo do piloto\n com a Prefeitura."  ')).toBe(
+      'Escopo do piloto com a Prefeitura'
+    )
+    expect(cleanTitle('“Orçamento de horas”')).toBe('Orçamento de horas')
+  })
+
+  it('drops empty or non-text values', () => {
+    expect(cleanTitle('   ')).toBeUndefined()
+    expect(cleanTitle('...')).toBeUndefined()
+    expect(cleanTitle(42)).toBeUndefined()
+  })
+
+  it('cuts very long titles', () => {
+    expect(cleanTitle('a'.repeat(500))).toHaveLength(MAX_TITLE)
+  })
+})
+
+describe('renameRecording', () => {
+  const id = '20261102-140000'
+  const dir = join(recordingsDir(), id)
+
+  const setup = (summaryTitle?: string): void => {
+    mkdirSync(dir, { recursive: true })
+    writeFileSync(join(dir, 'meta.json'), JSON.stringify(meta({ id, endedAt: meta().startedAt })))
+    if (summaryTitle) {
+      writeFileSync(join(dir, 'summary.json'), JSON.stringify({ title: summaryTitle }))
+    }
+  }
+
+  it('shows the suggested title until the user names the recording', async () => {
+    setup('Escopo do piloto')
+    expect(await summarize(id)).toMatchObject({ title: 'Escopo do piloto', titleIsCustom: false })
+
+    await renameRecording(id, '  Piloto: prazos ')
+    expect(await summarize(id)).toMatchObject({ title: 'Piloto: prazos', titleIsCustom: true })
+
+    await renameRecording(id, '')
+    expect(await summarize(id)).toMatchObject({ title: 'Escopo do piloto', titleIsCustom: false })
+  })
+
+  it('has no title before there is a summary', async () => {
+    rmSync(dir, { recursive: true, force: true })
+    setup()
+    expect(await summarize(id)).toMatchObject({ title: null, titleIsCustom: false })
   })
 })

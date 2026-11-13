@@ -14,6 +14,8 @@ const item = (fields: Partial<RecordingSummary> = {}): RecordingSummary => ({
   hasTranscript: false,
   hasSummary: false,
   importedFileName: null,
+  title: null,
+  titleIsCustom: false,
   ...fields
 })
 

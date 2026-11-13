@@ -2,7 +2,7 @@ import { readFile } from 'fs/promises'
 import type { ActionItem, Summary, Transcript } from '../shared/types'
 import { ensureModel, ensureOllama, generate } from './ollama'
 import { summaryFile, transcriptFile } from './paths'
-import { readMeta, writeFileAtomic } from './store'
+import { cleanTitle, readMeta, writeFileAtomic } from './store'
 
 /** ~7k tokens per call keeps prompt + answer inside a 16k context on CPU. */
 const CHUNK_CHARS = 24_000
@@ -33,6 +33,7 @@ Regras:
 - Listas vazias são válidas quando não houver decisões, tarefas ou pendências.`
 
 const FIELDS = `Responda em JSON com:
+- "title": título curto do assunto principal, de 3 a 8 palavras, sem data, sem aspas e sem ponto final (ex.: "Escopo do piloto com a Prefeitura").
 - "overview": 3 a 6 frases sobre o assunto da conversa e como ela terminou.
 - "keyPoints": até 8 pontos principais, curtos.
 - "decisions": decisões tomadas de forma explícita.
@@ -48,6 +49,7 @@ const stringList = { type: 'array', items: { type: 'string' } }
 const SCHEMA = {
   type: 'object',
   properties: {
+    title: { type: 'string' },
     overview: { type: 'string' },
     keyPoints: stringList,
     decisions: stringList,
@@ -64,7 +66,7 @@ const SCHEMA = {
     },
     openQuestions: stringList
   },
-  required: ['overview', 'keyPoints', 'decisions', 'actionItems', 'openQuestions']
+  required: ['title', 'overview', 'keyPoints', 'decisions', 'actionItems', 'openQuestions']
 }
 
 const SCHEMA_IMPORTED = {
@@ -130,7 +132,9 @@ export function parseDraft(text: string): Draft {
           owner: item.owner === 'Eu' || item.owner === 'Outros' ? item.owner : null
         }))
     : []
+  const title = cleanTitle(raw.title)
   return {
+    ...(title ? { title } : {}),
     overview: typeof raw.overview === 'string' ? raw.overview : '',
     keyPoints: list(raw.keyPoints),
     decisions: list(raw.decisions),
