@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
 import { join } from 'path'
+import { adoptLegacyDir, LEGACY_NAME } from './legacy'
 
 export interface Tools {
   ffmpeg: string
@@ -31,24 +32,26 @@ function programs(): string {
 }
 
 function modelsDir(): string {
-  return process.env.GRANOLA_MODELS_DIR ?? join(localAppData(), 'granola-local', 'models')
+  if (process.env.ATA_MODELS_DIR) return process.env.ATA_MODELS_DIR
+  const base = adoptLegacyDir(join(localAppData(), 'ata'), join(localAppData(), LEGACY_NAME))
+  return join(base, 'models')
 }
 
 /** ffmpeg alone: importing a file doesn't need Whisper or its models. */
 export function resolveFfmpeg(): string {
   const bundled = join(programs(), 'ffmpeg', 'bin', 'ffmpeg.exe')
-  return process.env.GRANOLA_FFMPEG ?? (existsSync(bundled) ? bundled : 'ffmpeg')
+  return process.env.ATA_FFMPEG ?? (existsSync(bundled) ? bundled : 'ffmpeg')
 }
 
 /**
  * Finds ffmpeg, whisper.cpp and the models. Defaults match the setup in
- * CLAUDE.md; GRANOLA_FFMPEG, GRANOLA_WHISPER_CLI and GRANOLA_MODELS_DIR override them.
+ * the README (scripts/setup-tools.ps1); ATA_FFMPEG, ATA_WHISPER_CLI and ATA_MODELS_DIR override them.
  */
 export function resolveTools(): Tools {
   const ffmpeg = resolveFfmpeg()
 
-  const whisperCli = process.env.GRANOLA_WHISPER_CLI
-    ? [process.env.GRANOLA_WHISPER_CLI]
+  const whisperCli = process.env.ATA_WHISPER_CLI
+    ? [process.env.ATA_WHISPER_CLI]
     : ['whisper-cuda', 'whisper-cpu']
         .map((dir) => join(programs(), dir, 'Release', 'whisper-cli.exe'))
         .filter((path) => existsSync(path))
@@ -65,15 +68,15 @@ export function resolveTools(): Tools {
   return { ffmpeg, whisperCli, model, vadModel }
 }
 
-/** GRANOLA_OLLAMA, GRANOLA_OLLAMA_MODEL and OLLAMA_HOST override the defaults. */
+/** ATA_OLLAMA, ATA_OLLAMA_MODEL and OLLAMA_HOST override the defaults. */
 export function resolveOllama(): OllamaTools {
   const bundled = join(programs(), 'ollama', 'ollama.exe')
-  const exe = process.env.GRANOLA_OLLAMA ?? (existsSync(bundled) ? bundled : null)
+  const exe = process.env.ATA_OLLAMA ?? (existsSync(bundled) ? bundled : null)
   const host = (process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434').replace(/\/$/, '')
   return {
     exe,
     modelsDir: join(modelsDir(), 'ollama'),
-    model: process.env.GRANOLA_OLLAMA_MODEL ?? SUMMARY_MODEL,
+    model: process.env.ATA_OLLAMA_MODEL ?? SUMMARY_MODEL,
     host: host.startsWith('http') ? host : `http://${host}`
   }
 }

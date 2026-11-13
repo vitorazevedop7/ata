@@ -1,13 +1,16 @@
 {
-  "name": "granola-local",
+  "name": "ata",
   "version": "1.0.0",
   "description": "Offline-first meeting recorder, transcriber and summarizer",
   "main": "./out/main/index.js",
-  "author": "vitorazevedop7",
-  "homepage": "https://github.com/vitorazevedop7/granola-local",
+  "author": "Vitor Augusto Viana Azevedo",
+  "license": "MIT",
+  "homepage": "https://github.com/vitorazevedop7/ata",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
+    "test": "vitest run",
+    "setup:tools": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-tools.ps1",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
@@ -44,7 +47,8 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "typescript": "^5.9.3",
-    "vite": "^8.3.4"
+    "vite": "^8.3.4",
+    "vitest": "^5.1.0"
   },
   "private": true
 }

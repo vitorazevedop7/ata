@@ -1,5 +1,5 @@
-appId: io.github.vitorazevedop7.granolalocal
-productName: Granola Local
+appId: io.github.vitorazevedop7.ata
+productName: Ata
 directories:
   buildResources: build
 files:
@@ -9,12 +9,13 @@ files:
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!{bench,docs,scripts,.claude}/**'
+  - '!{bench,docs,scripts,test,.claude}/**'
+  - '!{vitest.config.mjs,LICENSE}'
   - '!{CLAUDE.md,.editorconfig,.gitignore}'
 asarUnpack:
   - resources/**
 win:
-  executableName: granola-local
+  executableName: ata
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

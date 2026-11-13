@@ -1,6 +1,6 @@
 // Builds the Windows installer from the current checkout and installs it for
-// this user, replacing the installed Granola Local. Recordings are kept: they
-// live in %APPDATA%\granola-local, outside the install folder.
+// this user, replacing the installed Ata. Recordings are kept: they
+// live in %APPDATA%\ata, outside the install folder.
 //
 // Windows Smart App Control blocks each freshly built (unsigned) installer. When
 // that happens and only the app code changed, the already-trusted installed exe
@@ -15,7 +15,7 @@ import { execFileSync, spawnSync } from 'node:child_process'
 import { copyFileSync, existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
-const EXE = 'granola-local.exe'
+const EXE = 'ata.exe'
 const force = process.argv.includes('--force')
 
 function fail(message) {
@@ -34,11 +34,11 @@ function isRunning() {
 if (isRunning()) {
   if (!force) {
     fail(
-      'O Granola Local está aberto. Feche o app (ou confirme que não há gravação nem ' +
+      'O Ata está aberto. Feche o app (ou confirme que não há gravação nem ' +
         'transcrição em andamento) e rode de novo com: npm run install:app -- --force'
     )
   }
-  console.log('Fechando o Granola Local...')
+  console.log('Fechando o Ata...')
   spawnSync('taskkill', ['/IM', EXE, '/F'], { stdio: 'ignore' })
 }
 
@@ -108,8 +108,7 @@ if (install.status !== 0) {
   copyFileSync(target, `${target}.bak`)
   copyFileSync(join(unpacked, ASAR), target)
   console.log(
-    `\nGranola Local ${version} atualizado trocando só ${target} ` +
-      '(o anterior ficou em app.asar.bak).'
+    `\nAta ${version} atualizado trocando só ${target} ` + '(o anterior ficou em app.asar.bak).'
   )
   process.exit(0)
 }
@@ -120,4 +119,4 @@ if (!existsSync(installed)) fail(`O app não apareceu em ${installed}.`)
 for (let i = 0; i < 10 && !isRunning(); i++) await new Promise((r) => setTimeout(r, 500))
 spawnSync('taskkill', ['/IM', EXE, '/F'], { stdio: 'ignore' })
 
-console.log(`\nGranola Local ${version} instalado em ${installed}.`)
+console.log(`\nAta ${version} instalado em ${installed}.`)

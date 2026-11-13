@@ -14,7 +14,7 @@ resumo, decisões e tarefas com IA. Tudo roda na máquina do usuário.
 | Tema | Decisão | Por quê |
 |---|---|---|
 | App | Electron + React + TypeScript | Captura áudio do sistema no Windows sem código nativo; stack web conhecida |
-| Captura | Dois canais: microfone ("Eu") e áudio do sistema por loopback ("Outros") | Mesmo modelo do Granola (ver `re-findings.md`); separa quem fala sem diarização |
+| Captura | Dois canais: microfone ("Eu") e áudio do sistema por loopback ("Outros") | Separa quem fala sem diarização: o que sai das caixas de som é "Outros", o que entra no microfone é "Eu" |
 | Transcrição | whisper.cpp local, modelo `large-v3-turbo` quantizado | Grátis, offline, bom em pt-BR; roda em CPU e aproveita GPU quando houver |
 | IA (resumo, tarefas, chat) | Ollama local, modelo pequeno (3–8B, família Qwen ou Gemma) | Grátis e privado. Fica atrás de uma interface para poder trocar de modelo/provedor depois |
 | Armazenamento | Uma pasta por gravação com arquivos JSON (`meta`, `transcript`, `summary`) | Mais simples que SQLite enquanto não há busca; dá para migrar depois |
@@ -49,11 +49,11 @@ limites apertados (1h de reunião estoura o limite por minuto do Groq).
 ## Pipeline
 
 ```
-gravação (mic.wav + sistema.wav)
+gravação (mic.webm + system.webm)
   → whisper.cpp por canal → segmentos com tempo e falante
   → junta e ordena por tempo → transcrição
   → Ollama → resumo / decisões / tarefas (JSON)
-  → SQLite
+  → pasta da gravação (JSON)
 ```
 
 Whisper e Ollama rodam **um depois do outro**, não juntos, para caber em 16 GB de RAM.

@@ -1,6 +1,6 @@
 # Design
 
-O Granola Local é uma ferramenta de trabalho: a interface some na tarefa e a personalidade
+O Ata é uma ferramenta de trabalho: a interface some na tarefa e a personalidade
 mora nos detalhes. O mundo visual vem da ata de reunião brasileira.
 
 ## Ideia
