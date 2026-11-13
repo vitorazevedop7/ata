@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Checks (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      # Includes the typecheck of the main process and the renderer.
+      - run: npm run build
+
+  macos-tools:
+    name: macOS tools (setup script, Whisper, Ollama)
+    runs-on: macos-latest
+    timeout-minutes: 45
+    env:
+      MODELS: ${{ github.workspace }}/../ata-models
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache models
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.MODELS }}
+          key: ata-models-v1-large-v3-turbo-q5_0-silero-v6.2.0-qwen3.5-4b
+
+      - name: Run the setup script
+        run: ATA_MODELS_DIR="$MODELS" bash scripts/setup-tools.sh
+
+      - name: Tools are where the app looks for them
+        run: |
+          prefix="$(brew --prefix)"
+          for tool in ffmpeg whisper-cli ollama; do
+            test -x "$prefix/bin/$tool" || { echo "missing $prefix/bin/$tool"; exit 1; }
+          done
+
+      - name: Transcribe a sample with the app's Whisper options
+        run: |
+          sample="$(brew --prefix whisper.cpp)/share/whisper.cpp/jfk.wav"
+          ffmpeg -loglevel error -y -i "$sample" -ac 1 -ar 16000 sample.wav
+          whisper-cli -m "$MODELS/ggml-large-v3-turbo-q5_0.bin" -f sample.wav \
+            -l auto -t 3 -bs 1 -bo 1 -mc 0 \
+            --vad -vm "$MODELS/ggml-silero-v6.2.0.bin" \
+            -oj -pp -of out
+          node -e '
+            const json = require("./out.json")
+            const text = json.transcription.map((s) => s.text).join(" ")
+            console.log(text)
+            if (!/country/i.test(text)) process.exit(1)
+          '
+
+      - name: Get a JSON answer from the summary model
+        run: |
+          export OLLAMA_MODELS="$MODELS/ollama"
+          ollama serve > ollama.log 2>&1 &
+          for _ in $(seq 30); do curl -sf http://127.0.0.1:11434/api/version > /dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:11434/api/generate -d '{
+            "model": "qwen3.5:4b",
+            "prompt": "Resuma em uma frase: [00:00] Outros: A entrega fica para sexta. [00:05] Eu: Combinado.",
+            "format": {"type": "object", "properties": {"overview": {"type": "string"}}, "required": ["overview"]},
+            "think": false,
+            "stream": false,
+            "options": {"num_ctx": 2048}
+          }' > answer.json
+          node -e '
+            const { response } = require("./answer.json")
+            console.log(response)
+            if (!JSON.parse(response).overview) process.exit(1)
+          '
+
+      - name: Ollama log
+        if: failure()
+        run: cat ollama.log || true

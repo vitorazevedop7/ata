@@ -284,6 +284,13 @@ button {
   color: var(--cover-ink-2);
 }
 
+.recorder-unavailable {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--cover-ink-2);
+}
+
 .rec-button {
   display: flex;
   align-items: center;
