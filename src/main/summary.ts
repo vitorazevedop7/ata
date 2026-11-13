@@ -109,8 +109,15 @@ export function chunk(transcript: Transcript, imported: boolean): string[] {
   return chunks
 }
 
+/** Takes the JSON object out of a reply that may wrap it in text or a code fence. */
+export function extractJson(text: string): string {
+  const start = text.indexOf('{')
+  const end = text.lastIndexOf('}')
+  return start !== -1 && end > start ? text.slice(start, end + 1) : text
+}
+
 export function parseDraft(text: string): Draft {
-  const raw = JSON.parse(text) as Partial<Draft>
+  const raw = JSON.parse(extractJson(text)) as Partial<Draft>
   const list = (value: unknown): string[] =>
     Array.isArray(value)
       ? value.filter((v): v is string => typeof v === 'string' && !!v.trim())

@@ -19,14 +19,24 @@ if ! command -v brew >/dev/null 2>&1; then
   exit 1
 fi
 
-step 'ffmpeg, whisper.cpp e Ollama (Homebrew)'
-for formula in ffmpeg whisper.cpp ollama; do
+step 'ffmpeg e whisper.cpp (Homebrew)'
+for formula in ffmpeg whisper.cpp; do
   if brew list --formula "$formula" >/dev/null 2>&1; then
     echo "    $formula já instalado"
   else
     brew install "$formula"
   fi
 done
+
+step 'Ollama'
+# The official build (cask ollama-binary): the Homebrew formula's build can't constrain
+# the output to a JSON schema on Apple Silicon. The app copes with either, but the
+# official one gives more reliable summaries.
+if command -v ollama >/dev/null 2>&1; then
+  echo "    Ollama já instalado em $(command -v ollama)"
+else
+  brew install --cask ollama-binary
+fi
 
 step 'Modelos do Whisper'
 mkdir -p "$MODELS"

@@ -103,7 +103,8 @@ O `setup:tools` instala ffmpeg, whisper.cpp e Ollama e baixa os modelos:
 
 - **Windows:** baixa as ferramentas para `%LOCALAPPDATA%\Programs` (whisper.cpp para CPU e,
   se houver GPU NVIDIA, para CUDA) e os modelos para `%LOCALAPPDATA%\ata\models`.
-- **macOS:** instala as ferramentas pelo Homebrew e baixa os modelos para
+- **macOS:** instala ffmpeg e whisper.cpp pelo Homebrew e a versão oficial do Ollama
+  (`ollama-binary`), e baixa os modelos para
   `~/Library/Application Support/ata/models`.
 
 Se você já tem alguma dessas ferramentas, aponte o app para ela com as variáveis
