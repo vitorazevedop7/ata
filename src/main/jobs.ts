@@ -140,6 +140,24 @@ function cancelQuestion(id: string): void {
   }
 }
 
+/**
+ * Lets go of a recording that is about to be deleted: drops its queued jobs,
+ * stops a question being answered and clears its statuses. Refuses while its
+ * transcription or summary is running, since those write into its folder.
+ */
+export function releaseRecording(id: string): void {
+  if (current?.job.id === id && current.job.kind !== 'ask') {
+    throw new Error('Espere a transcrição e o resumo terminarem para apagar a gravação.')
+  }
+  for (let i = queue.length - 1; i >= 0; i--) {
+    if (queue[i].id === id) queue.splice(i, 1)
+  }
+  if (current?.job.id === id) current.controller.abort()
+  for (const status of [...statuses.values()]) {
+    if (status.id === id) publish({ id, kind: status.kind, stage: 'done' })
+  }
+}
+
 export function enqueue(id: string, kind: JobKind, options?: TranscribeOptions): void {
   recordingDir(id) // validates the id
   const status = statuses.get(key(id, kind))

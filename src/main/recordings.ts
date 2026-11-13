@@ -1,7 +1,7 @@
 import { ipcMain, shell, type WebContents } from 'electron'
 import { appendFile, mkdir, stat } from 'fs/promises'
 import type { Channel, RecordingSummary } from '../shared/types'
-import { isBusy, processRecording } from './jobs'
+import { isBusy, processRecording, releaseRecording } from './jobs'
 import { CHANNELS, channelFile, recordingDir, recordingsDir } from './paths'
 import {
   claimRecordingId,
@@ -132,6 +132,19 @@ export function registerRecordingIpc(): void {
     if (isBusy(id)) throw new Error('Espere a transcrição terminar para apagar o áudio.')
     if (!(await readMeta(id)).endedAt) throw new Error('A gravação ainda está em andamento.')
     await deleteAudio(id, 'manual')
+  })
+
+  // The whole folder goes to the system trash, so a mistake can still be undone
+  // from there: restoring it puts the recording back in the list.
+  ipcMain.handle('recording:delete', async (_event, id: string) => {
+    const dir = recordingDir(id) // validates the id
+    if (active.has(id)) throw new Error('Pare a gravação antes de apagá-la.')
+    releaseRecording(id)
+    try {
+      await shell.trashItem(dir)
+    } catch (error) {
+      throw new Error('Não foi possível mover a gravação para a Lixeira.', { cause: error })
+    }
   })
 
   ipcMain.handle('recording:rename', (_event, id: string, title: string) =>

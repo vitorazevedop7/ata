@@ -21,7 +21,7 @@ import {
   transcriptToText
 } from '../format'
 import { AskSection } from './AskSection'
-import { CopyButton, DeleteAudioButton, Progress, TranscribeMenu } from './controls'
+import { CopyButton, DeleteMenu, Progress, TranscribeMenu } from './controls'
 import { ChevronLeftIcon, FolderIcon, NoteIcon, PencilIcon, TrashIcon } from './icons'
 
 type Tab = 'summary' | 'transcript'
@@ -309,6 +309,7 @@ export function RecordingDetail({
   onBack,
   onError,
   onChanged,
+  onDeleted,
   focusMs
 }: {
   item: RecordingSummary
@@ -323,6 +324,8 @@ export function RecordingDetail({
   onError: (message: string) => void
   /** Called after an action here changes the recording on disk. */
   onChanged: () => void
+  /** Called after the whole recording went to the trash. */
+  onDeleted: () => void
   /**
    * Instant in the recording to show: switches to the transcript, scrolls to
    * the segment spoken then and highlights it. Each new value jumps again.
@@ -423,13 +426,22 @@ export function RecordingDetail({
             </button>
           )}
           <span className="spacer" />
-          {item.hasAudio && item.endedAt && !transcribing && (
-            <DeleteAudioButton
+          {item.endedAt && !live && !transcribing && !summarizing && (
+            <DeleteMenu
+              canDeleteAudio={item.hasAudio}
               hasTranscript={item.hasTranscript}
-              onConfirm={async () => {
+              onDeleteAudio={async () => {
                 try {
                   await window.api.recording.deleteAudio(item.id)
                   onChanged()
+                } catch (error) {
+                  onError(error instanceof Error ? error.message : String(error))
+                }
+              }}
+              onDeleteRecording={async () => {
+                try {
+                  await window.api.recording.remove(item.id)
+                  onDeleted()
                 } catch (error) {
                   onError(error instanceof Error ? error.message : String(error))
                 }
