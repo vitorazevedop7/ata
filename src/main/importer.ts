@@ -1,12 +1,11 @@
 import { BrowserWindow, dialog, ipcMain, type OpenDialogOptions } from 'electron'
-import { mkdir, rename, rm, stat } from 'fs/promises'
+import { rename, rm, stat } from 'fs/promises'
 import { basename, extname } from 'path'
 import { IMPORT_EXTENSIONS, type ImportProgress } from '../shared/types'
 import { channelFile, recordingDir } from './paths'
 import { processRecording } from './jobs'
 import { run } from './process'
-import { newId } from './recordings'
-import { exists, writeMeta } from './store'
+import { claimRecordingId, writeMeta } from './store'
 import { resolveFfmpeg } from './tools'
 
 const NO_AUDIO = /matches no streams|does not contain any stream|Output file .* does not contain/i
@@ -15,16 +14,6 @@ function parseClock(text: string): number | null {
   const match = /(\d+):(\d{2}):(\d{2}(?:\.\d+)?)/.exec(text)
   if (!match) return null
   return (Number(match[1]) * 3600 + Number(match[2]) * 60 + Number(match[3])) * 1000
-}
-
-/** First free id at or after the given time, so imports never overwrite a recording. */
-async function freeId(start: Date): Promise<{ id: string; startedAt: Date }> {
-  const time = new Date(Math.floor(start.getTime() / 1000) * 1000)
-  for (;;) {
-    const id = newId(time)
-    if (!(await exists(recordingDir(id)))) return { id, startedAt: time }
-    time.setSeconds(time.getSeconds() + 1)
-  }
 }
 
 /**
@@ -42,11 +31,11 @@ export async function importFile(
   const info = await stat(source)
   if (!info.isFile()) throw new Error(`${fileName} não é um arquivo.`)
 
-  const { id, startedAt } = await freeId(info.mtime)
+  // The file's date becomes the recording's; the claimed id never overwrites a recording.
+  const { id, startedAt } = await claimRecordingId(info.mtime)
   const dir = recordingDir(id)
   const target = channelFile(id, 'system')
   const partial = `${target}.part`
-  await mkdir(dir, { recursive: true })
 
   let totalMs: number | null = null
   let convertedMs = 0

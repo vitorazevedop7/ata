@@ -6,7 +6,7 @@ identidade visual em `docs/design.md`.
 
 ## Comandos
 
-- `npm run dev`: abre o app em modo de desenvolvimento.
+- `npm run dev`: abre o app em modo de desenvolvimento. Só uma cópia do app roda por vez (as duas usariam a mesma pasta de gravações): com o app instalado aberto, o `npm run dev` só traz a janela dele para a frente e fecha.
 - `npm test`: testes (Vitest) da lógica que não depende do Electron.
 - `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`: rode os quatro antes de dizer que uma mudança está pronta.
 - `npm run setup:tools`: instala ffmpeg, whisper.cpp, Ollama e os modelos (`scripts/setup-tools.ps1` no Windows, `setup-tools.sh` com Homebrew no macOS).
@@ -19,12 +19,12 @@ identidade visual em `docs/design.md`.
   - `capture.ts`: microfone + loopback do sistema.
   - `recordings.ts`: IPC das gravações (gravar, listar, apagar áudio).
   - `importer.ts`: importa arquivo de áudio ou vídeo (botão Importar ou arrastar). O ffmpeg converte para opus mono em `system.webm`; o `meta.json` ganha `source: 'import'`, o nome do arquivo e `importedAt` (o prazo de 7 dias conta a partir da importação). Na interface e no resumo, o falante único aparece como "Conversa".
-  - `jobs.ts`: fila única de tarefas (transcrever, resumir, perguntar), uma por vez, com status para a interface. Toda gravação que termina (parada, importada ou fechada depois de uma queda) entra sozinha na fila; quando a transcrição termina, o resumo é enfileirado na frente.
+  - `jobs.ts`: fila única de tarefas (transcrever, resumir, perguntar), uma por vez, com status para a interface. Toda gravação que termina (parada, importada ou fechada depois de uma queda) entra sozinha na fila; quando a transcrição termina, o resumo é enfileirado na frente. A fila fica só na memória: na abertura, `resumePendingJobs` enfileira de novo as transcrições e os resumos que não rodaram.
   - `transcription.ts`: ffmpeg → whisper.cpp. `summary.ts` e `ollama.ts`: resumo com o Ollama local, em partes para conversas longas.
   - `ask.ts`: perguntas sobre uma gravação: resumo + trechos da transcrição escolhidos por palavras, resposta do Ollama com horários citados, histórico em `chat.json`.
   - `search.ts`: busca por texto em todas as gravações.
-  - `retention.ts`: apaga o áudio 7 dias depois da gravação (na abertura e a cada hora). Transcrição e resumo ficam.
-  - `store.ts` (meta.json, apagar áudio), `paths.ts`, `tools.ts` (onde ficam ffmpeg, whisper, Ollama e modelos), `process.ts`, `legacy.ts` (move as pastas do nome antigo).
+  - `retention.ts`: apaga o áudio 7 dias depois da gravação (na abertura e a cada hora), e no mínimo um dia depois da transcrição. Áudio nunca transcrito não é apagado. Transcrição e resumo ficam. Na abertura também limpa arquivos de trabalho esquecidos e retoma a fila.
+  - `store.ts` (meta.json, apagar áudio, `claimId` reserva o id criando a pasta, `writeFileAtomic` para todo JSON salvo), `paths.ts`, `tools.ts` (onde ficam ffmpeg, whisper, Ollama e modelos), `process.ts`, `legacy.ts` (move as pastas do nome antigo).
 - `src/preload`: ponte `window.api` (`recording`, `importer`, `jobs`, `results`, `search`, `copyText`).
 - `src/renderer`: interface React. `App.tsx` (barra, lista), `components/RecordingDetail.tsx` (transcrição e resumo), `components/controls.tsx` (menus, confirmação, copiar, progresso), `format.ts`.
 - `src/shared`: tipos usados pelos três.

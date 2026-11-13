@@ -10,8 +10,8 @@ export interface RecordingSummary {
   bytes: Record<Channel, number>
   hasAudio: boolean
   audioDeletedAt: string | null
-  /** When the audio will be deleted automatically. */
-  audioExpiresAt: string
+  /** When the audio will be deleted automatically; null while it is kept until transcribed. */
+  audioExpiresAt: string | null
   hasTranscript: boolean
   hasSummary: boolean
   /** Name of the imported file, or null for a recording made in the app. */

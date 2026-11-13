@@ -17,6 +17,23 @@ app.setPath(
   adoptLegacyDir(join(app.getPath('appData'), 'ata'), join(app.getPath('appData'), LEGACY_NAME))
 )
 
+// One copy at a time. Two copies share the recordings folder, and each resumes
+// unfinished work on launch, so both could transcribe the same recording and
+// overwrite each other's work files. The lock follows the data folder set above,
+// so it also keeps `npm run dev` from running next to the installed app. A second
+// launch only brings the open window forward.
+if (!app.requestSingleInstanceLock()) {
+  app.exit(0)
+} else {
+  app.on('second-instance', () => {
+    const window = BrowserWindow.getAllWindows()[0]
+    if (!window) return
+    if (window.isMinimized()) window.restore()
+    window.show()
+    window.focus()
+  })
+}
+
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({

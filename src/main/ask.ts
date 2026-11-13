@@ -1,8 +1,8 @@
-import { readFile, writeFile } from 'fs/promises'
+import { readFile } from 'fs/promises'
 import type { Chat, ChatEntry, Summary, Transcript, TranscriptSegment } from '../shared/types'
 import { ensureModel, ensureOllama, generate } from './ollama'
 import { chatFile, summaryFile, transcriptFile } from './paths'
-import { readMeta } from './store'
+import { readMeta, writeFileAtomic } from './store'
 
 /** Same budget as a summary chunk: prompt + answer stay inside a 16k context on CPU. */
 const CONTEXT_CHARS = 24_000
@@ -241,5 +241,5 @@ export async function ask(
     model: tools.model
   }
   const chat: Chat = { version: 1, entries: [...(await readChat(id)), entry] }
-  await writeFile(chatFile(id), JSON.stringify(chat, null, 2))
+  await writeFileAtomic(chatFile(id), JSON.stringify(chat, null, 2))
 }
