@@ -1,6 +1,11 @@
 import { access, mkdir, readdir, readFile, rename, rm, stat, writeFile } from 'fs/promises'
 import { join } from 'path'
-import { AUDIO_RETENTION_DAYS, type RecordingSummary } from '../shared/types'
+import {
+  AUDIO_RETENTION_DAYS,
+  MAX_TITLE,
+  type RecordingSummary,
+  type Summary
+} from '../shared/types'
 import {
   CHANNELS,
   ID_PATTERN,
@@ -24,6 +29,8 @@ export interface RecordingMeta {
   source?: 'import'
   importedFileName?: string
   importedAt?: string
+  /** Name the user gave the recording; wins over the title the summary suggests. */
+  title?: string
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -132,12 +139,47 @@ export function audioExpiresAt(meta: RecordingMeta, transcribedAt: Date | null):
   return new Date(Math.max(period, transcribedAt.getTime() + DAY_MS))
 }
 
+/**
+ * A title as the list and the page show it: one line, no wrapping quotes or
+ * final period, at most MAX_TITLE characters. Empty becomes undefined.
+ */
+export function cleanTitle(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const title = value
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^["'“”«]+|["'“”»]+$/g, '')
+    .replace(/\.+$/, '')
+    .trim()
+  return title ? title.slice(0, MAX_TITLE).trim() : undefined
+}
+
+/** Names a recording; an empty title removes the name, so the suggested one shows again. */
+export async function renameRecording(id: string, title: unknown): Promise<void> {
+  const meta = await readMeta(id)
+  const name = cleanTitle(title)
+  if (name) meta.title = name
+  else delete meta.title
+  await writeMeta(meta)
+}
+
+/** summary.json, or null when there is none (or it can't be read). */
+async function readSummary(id: string): Promise<Summary | null> {
+  try {
+    return JSON.parse(await readFile(summaryFile(id), 'utf8')) as Summary
+  } catch {
+    return null
+  }
+}
+
 export async function summarize(id: string): Promise<RecordingSummary | null> {
   try {
     const meta = await readMeta(id)
     const bytes = { mic: 0, system: 0 }
     for (const channel of CHANNELS) bytes[channel] = await fileSize(channelFile(id, channel))
     const transcribedAt = await modifiedAt(transcriptFile(id))
+    const summary = await readSummary(id)
+    const suggested = typeof summary?.title === 'string' ? summary.title : null
     return {
       id,
       startedAt: meta.startedAt,
@@ -147,8 +189,10 @@ export async function summarize(id: string): Promise<RecordingSummary | null> {
       audioDeletedAt: meta.audioDeletedAt ?? null,
       audioExpiresAt: audioExpiresAt(meta, transcribedAt)?.toISOString() ?? null,
       hasTranscript: transcribedAt !== null,
-      hasSummary: await exists(summaryFile(id)),
-      importedFileName: meta.source === 'import' ? (meta.importedFileName ?? '') : null
+      hasSummary: summary !== null,
+      importedFileName: meta.source === 'import' ? (meta.importedFileName ?? '') : null,
+      title: meta.title || suggested || null,
+      titleIsCustom: !!meta.title
     }
   } catch {
     return null

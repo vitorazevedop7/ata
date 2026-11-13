@@ -22,7 +22,10 @@ saem do computador, e não há API paga nem conta para criar.
   resumidas em partes e depois juntadas.
 - **Responde perguntas sobre uma reunião** ("o que ficou combinado sobre o prazo?"), citando
   os horários da transcrição.
-- **Busca em todas as reuniões**, sem diferenciar acentos nem maiúsculas.
+- **Dá um título a cada reunião**, sugerido junto com o resumo. Clique no título para
+  renomear; apagando o nome, volta o sugerido.
+- **Busca em todas as reuniões**, pelos títulos, resumos e transcrições, sem diferenciar
+  acentos nem maiúsculas.
 - **Apaga o áudio sozinho depois de 7 dias.** A transcrição e o resumo ficam; o áudio, que é o
   dado mais sensível e mais pesado, não. Áudio que ainda não foi transcrito nunca é apagado.
 - Tudo entra numa **fila em segundo plano**: a gravação termina e a transcrição começa; a
