@@ -39,6 +39,16 @@ export function NoteIcon({ className }: IconProps): React.JSX.Element {
   )
 }
 
+/** A pencil: renaming. */
+export function PencilIcon({ className }: IconProps): React.JSX.Element {
+  return (
+    <svg {...base} className={className}>
+      <path d="M10.5 3l2.5 2.5L6 12.5l-3.25.75L3.5 10z" />
+      <path d="M9 4.5L11.5 7" />
+    </svg>
+  )
+}
+
 export function TrashIcon({ className }: IconProps): React.JSX.Element {
   return (
     <svg {...base} className={className}>

@@ -281,9 +281,14 @@ function App(): React.JSX.Element {
                           onClick={() => select(item.id)}
                         >
                           <span className="row-line">
-                            <span className="row-title">{formatRowTitle(item.startedAt)}</span>
+                            <span className="row-title">
+                              {item.title ?? formatRowTitle(item.startedAt)}
+                            </span>
                             <span className="row-length">{formatLength(item) ?? ''}</span>
                           </span>
+                          {item.title && (
+                            <span className="row-when">{formatRowTitle(item.startedAt)}</span>
+                          )}
                           {item.importedFileName && (
                             <span className="row-file" title={item.importedFileName}>
                               {item.importedFileName}
