@@ -11,6 +11,8 @@ import { useImport } from './useImport'
 
 const jobKey = (id: string, kind: JobKind): string => `${kind}:${id}`
 
+const canRecord = window.api.canRecord
+
 function Meter({ label, level }: { label: string; level: number }): React.JSX.Element {
   // RMS of speech sits around 0.01–0.2; scale so normal speech fills most of the bar.
   const fill = Math.min(1, Math.sqrt(level) * 2.2)
@@ -211,11 +213,18 @@ function App(): React.JSX.Element {
           <button
             className={`rec-button${active ? ' recording' : ''}`}
             onClick={active ? onStop : onStart}
-            disabled={busy}
+            disabled={busy || !canRecord}
+            aria-describedby={canRecord ? undefined : 'record-unavailable'}
           >
             <span className="rec-glyph" aria-hidden />
             {active ? 'Parar gravação' : 'Gravar'}
           </button>
+          {!canRecord && (
+            <p id="record-unavailable" className="recorder-unavailable">
+              Gravar o som do computador só funciona no Windows por enquanto. Aqui, use Importar
+              para transcrever um arquivo.
+            </p>
+          )}
         </section>
 
         <SearchField value={query} onChange={setQuery} onReveal={showLibrary} />
@@ -232,11 +241,19 @@ function App(): React.JSX.Element {
           {recordings.length === 0 ? (
             <div className="library-empty">
               <p className="library-empty-title">Nenhuma gravação ainda</p>
-              <p>
-                Clique em Gravar durante uma reunião ou ligação. O microfone vira “Eu” e o som do
-                computador vira “Outros”.
-              </p>
-              <p>Para uma conversa gravada em outro lugar, use Importar ou solte o arquivo aqui.</p>
+              {canRecord ? (
+                <>
+                  <p>
+                    Clique em Gravar durante uma reunião ou ligação. O microfone vira “Eu” e o som
+                    do computador vira “Outros”.
+                  </p>
+                  <p>
+                    Para uma conversa gravada em outro lugar, use Importar ou solte o arquivo aqui.
+                  </p>
+                </>
+              ) : (
+                <p>Use Importar ou solte aqui um arquivo de áudio ou vídeo para transcrevê-lo.</p>
+              )}
             </div>
           ) : (
             groupByDay(recordings).map(([label, items]) => (

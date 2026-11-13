@@ -1,5 +1,7 @@
 # Ata
 
+[![CI](https://github.com/vitorazevedop7/ata/actions/workflows/ci.yml/badge.svg)](https://github.com/vitorazevedop7/ata/actions/workflows/ci.yml)
+
 App desktop que grava reuniões e ligações no computador, transcreve e gera um resumo com
 decisões e tarefas. **Tudo roda na sua máquina:** o áudio, a transcrição e o resumo nunca
 saem do computador, e não há API paga nem conta para criar.
@@ -70,8 +72,16 @@ corrigiu áudio em inglês que virava texto sem sentido com o idioma fixo em por
 
 ## Instalação
 
-Requisitos: Windows 10 ou 11, [Node.js](https://nodejs.org) 22 ou mais novo e cerca de 8 GB
-livres para as ferramentas e os modelos. GPU NVIDIA é opcional.
+| Sistema          | Gravar reuniões | Importar, transcrever, resumir e perguntar |
+| ---------------- | --------------- | ------------------------------------------ |
+| Windows 10 ou 11 | Sim             | Sim (GPU NVIDIA opcional)                  |
+| macOS            | Ainda não       | Sim (GPU do Apple Silicon via Metal)       |
+
+No macOS, gravar depende de capturar o áudio do sistema, que o Electron ainda só oferece no
+Windows; veja "Limitações conhecidas".
+
+Requisitos: [Node.js](https://nodejs.org) 22 ou mais novo e cerca de 8 GB livres para as
+ferramentas e os modelos. No macOS, também o [Homebrew](https://brew.sh).
 
 ```bash
 git clone https://github.com/vitorazevedop7/ata.git
@@ -89,16 +99,23 @@ npm install
 npm run setup:tools
 ```
 
-O `setup:tools` baixa ffmpeg, whisper.cpp (CPU e, se houver GPU NVIDIA, CUDA), Ollama e os
-modelos para `%LOCALAPPDATA%\Programs` e `%LOCALAPPDATA%\ata\models`. Se você já tem
-alguma dessas ferramentas, aponte o app para ela com as variáveis `ATA_FFMPEG`,
-`ATA_WHISPER_CLI`, `ATA_MODELS_DIR`, `ATA_OLLAMA` e `ATA_OLLAMA_MODEL`.
+O `setup:tools` instala ffmpeg, whisper.cpp e Ollama e baixa os modelos:
+
+- **Windows:** baixa as ferramentas para `%LOCALAPPDATA%\Programs` (whisper.cpp para CPU e,
+  se houver GPU NVIDIA, para CUDA) e os modelos para `%LOCALAPPDATA%\ata\models`.
+- **macOS:** instala ffmpeg e whisper.cpp pelo Homebrew e a versão oficial do Ollama
+  (`ollama-binary`), e baixa os modelos para
+  `~/Library/Application Support/ata/models`.
+
+Se você já tem alguma dessas ferramentas, aponte o app para ela com as variáveis
+`ATA_FFMPEG`, `ATA_WHISPER_CLI`, `ATA_MODELS_DIR`, `ATA_OLLAMA` e `ATA_OLLAMA_MODEL`.
 
 ```bash
 npm run dev
 ```
 
-Para gerar o instalador: `npm run build:win` (sai em `dist/`).
+Para gerar o instalador: `npm run build:win` no Windows ou `npm run build:mac` no macOS
+(sai em `dist/`, sem assinatura).
 
 ## Desenvolvimento
 
@@ -126,7 +143,11 @@ O Ata não envia nada para a internet: a transcrição e o resumo rodam em proce
 
 ## Limitações conhecidas
 
-- Só Windows, por enquanto (a captura do áudio do sistema usa o loopback do Windows).
+- Gravar só funciona no Windows. O áudio do sistema vem do loopback que o Electron oferece
+  apenas lá; no macOS, o caminho é um pequeno módulo nativo com Core Audio Taps (macOS 14.2
+  ou mais novo). No macOS, por enquanto, use Importar.
+- O suporte a macOS foi escrito sem um Mac para testar: caminhos, script de instalação e
+  interface seguem o que o Homebrew e o Electron documentam.
 - Sem fone de ouvido, o microfone também capta a voz dos outros saindo pelas caixas de som,
   e ela aparece nos dois canais.
 - Não separa mais de dois falantes: "Outros" é todo mundo do outro lado da chamada.

@@ -9,7 +9,7 @@ identidade visual em `docs/design.md`.
 - `npm run dev`: abre o app em modo de desenvolvimento.
 - `npm test`: testes (Vitest) da lógica que não depende do Electron.
 - `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`: rode os quatro antes de dizer que uma mudança está pronta.
-- `npm run setup:tools`: baixa ffmpeg, whisper.cpp, Ollama e os modelos (`scripts/setup-tools.ps1`).
+- `npm run setup:tools`: instala ffmpeg, whisper.cpp, Ollama e os modelos (`scripts/setup-tools.ps1` no Windows, `setup-tools.sh` com Homebrew no macOS).
 - `npm run build:win`: gera o instalador `dist/ata-<versão>-setup.exe` (instala para o usuário, sem admin).
 - `npm run install:app`: gera o instalador e instala de uma vez (`scripts/install-app.mjs`). Para se o app estiver aberto; `npm run install:app -- --force` fecha o app antes.
 
@@ -32,7 +32,8 @@ identidade visual em `docs/design.md`.
 
 ## Ferramentas e modelos
 
-- ffmpeg, whisper.cpp (`whisper-cuda` e `whisper-cpu`) e Ollama ficam em `%LOCALAPPDATA%\Programs`; modelos em `%LOCALAPPDATA%\ata\models` (Ollama com `OLLAMA_MODELS` apontando para `models\ollama`). As variáveis `ATA_FFMPEG`, `ATA_WHISPER_CLI`, `ATA_MODELS_DIR`, `ATA_OLLAMA` e `ATA_OLLAMA_MODEL` trocam esses caminhos.
+- Plataformas: gravar só funciona no Windows (o loopback de áudio do sistema do Electron só existe lá; `window.api.canRecord`). No macOS, importar, transcrever, resumir e perguntar funcionam; as ferramentas vêm do Homebrew e os modelos ficam em `~/Library/Application Support/ata/models` (`toolLocations` em `tools.ts`).
+- No Windows, ffmpeg, whisper.cpp (`whisper-cuda` e `whisper-cpu`) e Ollama ficam em `%LOCALAPPDATA%\Programs`; modelos em `%LOCALAPPDATA%\ata\models` (Ollama com `OLLAMA_MODELS` apontando para `models\ollama`). As variáveis `ATA_FFMPEG`, `ATA_WHISPER_CLI`, `ATA_MODELS_DIR`, `ATA_OLLAMA` e `ATA_OLLAMA_MODEL` trocam esses caminhos.
 - Modelos: `ggml-large-v3-turbo-q5_0.bin` (Whisper), `ggml-silero-v6.2.0.bin` (detector de voz) e `qwen3.5:4b` no Ollama (resumo). O app liga o `ollama serve` sozinho se ele não estiver rodando.
 - Transcrição: `-l auto -bs 1 -bo 1 -mc 0 --vad`. O beam search padrão é ~15× mais lento; sem `--vad`, o Whisper inventa frases repetidas nos trechos de silêncio; idioma fixo estraga áudio em outra língua.
 

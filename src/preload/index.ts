@@ -63,4 +63,15 @@ const search: SearchApi = {
 
 const copyText = (text: string): Promise<void> => ipcRenderer.invoke('app:copy', text)
 
-contextBridge.exposeInMainWorld('api', { recording, importer, jobs, results, search, copyText })
+// Recording needs the system-audio loopback, which Electron only offers on Windows.
+const canRecord = process.platform === 'win32'
+
+contextBridge.exposeInMainWorld('api', {
+  recording,
+  importer,
+  jobs,
+  results,
+  search,
+  copyText,
+  canRecord
+})
