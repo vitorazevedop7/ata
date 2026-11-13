@@ -103,7 +103,7 @@ export async function generate(tools: OllamaTools, options: GenerateOptions): Pr
 class StructuredOutputUnavailable extends Error {}
 
 function isStructuredOutputError(message: string): boolean {
-  return /structured output|xgrammar|not implemented|501/i.test(message)
+  return /structured output|xgrammar|not implemented|\b501\b/i.test(message)
 }
 let structuredOutput = true
 
