@@ -1,0 +1,121 @@
+<!doctype html>
+<!-- Cover image (1280x640) for the README and the repository's social preview.
+     Rendered to docs/images/capa.png by scripts/brand.mjs. -->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: 'Bricolage';
+        src: url('../../node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2')
+          format('woff2');
+        font-weight: 200 800;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1280px;
+        height: 640px;
+        overflow: hidden;
+      }
+      body {
+        position: relative;
+        background:
+          radial-gradient(120% 90% at 0% 0%, #283d66 0%, rgba(40, 61, 102, 0) 60%),
+          linear-gradient(180deg, #1e2d4c 0%, #141f36 100%);
+        font-family: 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        color: #e9edf5;
+      }
+      /* Faint ledger ruling across the cover. */
+      body::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          180deg,
+          transparent 0 39px,
+          rgba(233, 237, 245, 0.035) 39px 40px
+        );
+      }
+      .text {
+        position: absolute;
+        left: 88px;
+        top: 0;
+        bottom: 0;
+        width: 520px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 26px;
+      }
+      .brand img {
+        width: 128px;
+        height: 128px;
+        margin-left: -8px;
+      }
+      h1 {
+        margin: 0;
+        font-family: 'Bricolage', sans-serif;
+        font-size: 132px;
+        font-weight: 700;
+        font-variation-settings: 'opsz' 96;
+        letter-spacing: -0.035em;
+        line-height: 1;
+      }
+      p.tagline {
+        margin: 36px 0 0;
+        font-family: 'Bricolage', sans-serif;
+        font-size: 38px;
+        font-weight: 500;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+      }
+      p.tagline em {
+        font-style: normal;
+        color: #f0857a;
+      }
+      p.details {
+        margin: 22px 0 0;
+        font-size: 21px;
+        line-height: 1.45;
+        color: #a8b2c6;
+      }
+      .shot {
+        position: absolute;
+        left: 676px;
+        top: 92px;
+        width: 760px;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow:
+          0 40px 80px -20px rgba(4, 8, 18, 0.65),
+          0 0 0 1px rgba(233, 237, 245, 0.12);
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="text">
+      <div class="brand">
+        <img src="icon.svg" alt="" />
+        <h1>Ata</h1>
+      </div>
+      <p class="tagline">Suas reuniões viram <em>atas</em>, sem sair do computador.</p>
+      <p class="details">
+        Grava, transcreve e resume com IA local.<br />
+        Sem nuvem, sem conta, sem custo.
+      </p>
+    </div>
+    <div class="shot"><img src="../../docs/images/resumo.png" alt="" /></div>
+  </body>
+</html>

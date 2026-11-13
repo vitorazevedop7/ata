@@ -77,13 +77,14 @@ export function ChevronDownIcon({ className }: IconProps): React.JSX.Element {
  */
 export function BrandMark({ className }: IconProps): React.JSX.Element {
   return (
+    // The app icon without its navy tile: here the sidebar is the ledger's cover.
     <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden className={className}>
-      <rect x="1" y="1" width="20" height="20" rx="5" fill="var(--cover-ink)" />
-      <path d="M11 4v14" stroke="var(--rec)" strokeWidth="1.5" strokeLinecap="round" />
+      <rect x="3" y="1" width="16" height="20" rx="2.5" fill="var(--cover-ink)" />
+      <path d="M11 1v20" stroke="var(--rec)" strokeWidth="1.25" />
       <path
-        d="M4.5 7h4M5.5 10h3M13.5 12.5h4M13.5 15.5h2.5"
+        d="M5.5 5.5h3M6.5 8.5h2M13.5 11.5h3M13.5 14.5h2M6 17.5h2.5"
         stroke="var(--cover)"
-        strokeWidth="1.5"
+        strokeWidth="1.6"
         strokeLinecap="round"
       />
     </svg>
