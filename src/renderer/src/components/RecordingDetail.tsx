@@ -382,6 +382,12 @@ export function RecordingDetail({
 
   const transcribing = transcribeStatus && transcribeStatus.stage !== 'error'
   const summarizing = summarizeStatus && summarizeStatus.stage !== 'error'
+  // Running, not just waiting in the queue: a queued job is dropped when the
+  // recording is deleted, but a running one writes into its folder.
+  const running = (status?: JobStatus): boolean =>
+    !!status && status.stage !== 'queued' && status.stage !== 'error'
+  const canDeleteRecording =
+    !!item.endedAt && !live && !running(transcribeStatus) && !running(summarizeStatus)
   const length = formatLength(item)
   const imported = item.importedFileName !== null
   const source = importNote(item)
@@ -426,9 +432,9 @@ export function RecordingDetail({
             </button>
           )}
           <span className="spacer" />
-          {item.endedAt && !live && !transcribing && !summarizing && (
+          {canDeleteRecording && (
             <DeleteMenu
-              canDeleteAudio={item.hasAudio}
+              canDeleteAudio={item.hasAudio && !transcribing && !summarizing}
               hasTranscript={item.hasTranscript}
               onDeleteAudio={async () => {
                 try {
