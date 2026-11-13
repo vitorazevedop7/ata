@@ -1,4 +1,5 @@
 # Ata
+n[![CI](https://github.com/vitorazevedop7/ata/actions/workflows/ci.yml/badge.svg)](https://github.com/vitorazevedop7/ata/actions/workflows/ci.yml)
 
 App desktop que grava reuniões e ligações no computador, transcreve e gera um resumo com
 decisões e tarefas. **Tudo roda na sua máquina:** o áudio, a transcrição e o resumo nunca
