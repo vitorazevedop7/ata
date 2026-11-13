@@ -12,6 +12,8 @@ declare global {
       results: ResultsApi
       search: SearchApi
       copyText(text: string): Promise<void>
+      /** False where the system audio cannot be captured (everywhere but Windows). */
+      canRecord: boolean
     }
   }
 }

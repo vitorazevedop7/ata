@@ -1,6 +1,6 @@
 import { app } from 'electron'
 import { existsSync } from 'fs'
-import { join } from 'path'
+import { join, posix, win32 } from 'path'
 import { adoptLegacyDir, LEGACY_NAME } from './legacy'
 
 export interface Tools {
@@ -12,51 +12,91 @@ export interface Tools {
 }
 
 export interface OllamaTools {
-  /** ollama.exe, or null when only an already-running server can be used. */
+  /** The ollama binary, or null when only an already-running server can be used. */
   exe: string | null
   modelsDir: string
   model: string
   host: string
 }
 
+/** Where each tool may be installed, in order of preference. */
+export interface ToolLocations {
+  ffmpeg: string[]
+  whisperCli: string[]
+  ollama: string[]
+  /** Folder for app data outside the roaming profile (models). */
+  dataRoot: string
+}
+
 const WHISPER_MODEL = 'ggml-large-v3-turbo-q5_0.bin'
 const VAD_MODEL = 'ggml-silero-v6.2.0.bin'
 const SUMMARY_MODEL = 'qwen3.5:4b'
 
-function localAppData(): string {
-  return process.env.LOCALAPPDATA ?? join(app.getPath('appData'), '..', 'Local')
+/**
+ * Default install locations per platform. On Windows they match
+ * scripts/setup-tools.ps1; elsewhere they are where Homebrew (or the Ollama app)
+ * puts the tools. Apps opened from Finder don't get the shell's PATH, so the
+ * Homebrew folders are listed explicitly.
+ */
+export function toolLocations(
+  platform: NodeJS.Platform,
+  env: NodeJS.ProcessEnv,
+  appData: string
+): ToolLocations {
+  if (platform === 'win32') {
+    const local = env.LOCALAPPDATA ?? win32.join(appData, '..', 'Local')
+    const programs = win32.join(local, 'Programs')
+    return {
+      ffmpeg: [win32.join(programs, 'ffmpeg', 'bin', 'ffmpeg.exe')],
+      whisperCli: ['whisper-cuda', 'whisper-cpu'].map((dir) =>
+        win32.join(programs, dir, 'Release', 'whisper-cli.exe')
+      ),
+      ollama: [win32.join(programs, 'ollama', 'ollama.exe')],
+      dataRoot: local
+    }
+  }
+  const bins = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin']
+  return {
+    ffmpeg: bins.map((dir) => posix.join(dir, 'ffmpeg')),
+    whisperCli: bins.map((dir) => posix.join(dir, 'whisper-cli')),
+    ollama: [
+      ...bins.map((dir) => posix.join(dir, 'ollama')),
+      '/Applications/Ollama.app/Contents/Resources/ollama'
+    ],
+    dataRoot: appData
+  }
 }
 
-function programs(): string {
-  return join(localAppData(), 'Programs')
+function locations(): ToolLocations {
+  return toolLocations(process.platform, process.env, app.getPath('appData'))
 }
 
 function modelsDir(): string {
   if (process.env.ATA_MODELS_DIR) return process.env.ATA_MODELS_DIR
-  const base = adoptLegacyDir(join(localAppData(), 'ata'), join(localAppData(), LEGACY_NAME))
+  const root = locations().dataRoot
+  const base = adoptLegacyDir(join(root, 'ata'), join(root, LEGACY_NAME))
   return join(base, 'models')
 }
 
 /** ffmpeg alone: importing a file doesn't need Whisper or its models. */
 export function resolveFfmpeg(): string {
-  const bundled = join(programs(), 'ffmpeg', 'bin', 'ffmpeg.exe')
-  return process.env.ATA_FFMPEG ?? (existsSync(bundled) ? bundled : 'ffmpeg')
+  if (process.env.ATA_FFMPEG) return process.env.ATA_FFMPEG
+  return locations().ffmpeg.find((path) => existsSync(path)) ?? 'ffmpeg'
 }
 
 /**
- * Finds ffmpeg, whisper.cpp and the models. Defaults match the setup in
- * the README (scripts/setup-tools.ps1); ATA_FFMPEG, ATA_WHISPER_CLI and ATA_MODELS_DIR override them.
+ * Finds ffmpeg, whisper.cpp and the models. ATA_FFMPEG, ATA_WHISPER_CLI and
+ * ATA_MODELS_DIR override the defaults from toolLocations().
  */
 export function resolveTools(): Tools {
   const ffmpeg = resolveFfmpeg()
 
+  const candidates = locations().whisperCli
   const whisperCli = process.env.ATA_WHISPER_CLI
     ? [process.env.ATA_WHISPER_CLI]
-    : ['whisper-cuda', 'whisper-cpu']
-        .map((dir) => join(programs(), dir, 'Release', 'whisper-cli.exe'))
-        .filter((path) => existsSync(path))
+    : candidates.filter((path) => existsSync(path))
   if (whisperCli.length === 0) {
-    throw new Error(`whisper.cpp não encontrado em ${programs()} (whisper-cuda ou whisper-cpu).`)
+    throw new Error(`whisper.cpp não encontrado. Procurado em: ${candidates.join(', ')}`)
   }
 
   const model = join(modelsDir(), WHISPER_MODEL)
@@ -70,8 +110,7 @@ export function resolveTools(): Tools {
 
 /** ATA_OLLAMA, ATA_OLLAMA_MODEL and OLLAMA_HOST override the defaults. */
 export function resolveOllama(): OllamaTools {
-  const bundled = join(programs(), 'ollama', 'ollama.exe')
-  const exe = process.env.ATA_OLLAMA ?? (existsSync(bundled) ? bundled : null)
+  const exe = process.env.ATA_OLLAMA ?? locations().ollama.find((path) => existsSync(path)) ?? null
   const host = (process.env.OLLAMA_HOST ?? 'http://127.0.0.1:11434').replace(/\/$/, '')
   return {
     exe,
