@@ -18,7 +18,7 @@ resumo, decisões e tarefas com IA. Tudo roda na máquina do usuário.
 | Transcrição | whisper.cpp local, modelo `large-v3-turbo` quantizado | Grátis, offline, bom em pt-BR; roda em CPU e aproveita GPU quando houver |
 | IA (resumo, tarefas, chat) | Ollama local, modelo pequeno (3–8B, família Qwen ou Gemma) | Grátis e privado. Fica atrás de uma interface para poder trocar de modelo/provedor depois |
 | Armazenamento | Uma pasta por gravação com arquivos JSON (`meta`, `transcript`, `summary`) | Mais simples que SQLite enquanto não há busca; dá para migrar depois |
-| Retenção do áudio | Áudio apagado 7 dias depois da gravação; opção "Transcrever e apagar áudio" e botão "Apagar áudio" | Áudio de reunião é o dado mais sensível e o mais pesado; o texto é o que tem valor |
+| Retenção do áudio | Áudio apagado 7 dias depois da gravação, se já transcrito (áudio nunca transcrito fica); opção "Transcrever e apagar áudio" e botão "Apagar áudio" | Áudio de reunião é o dado mais sensível e o mais pesado; o texto é o que tem valor |
 | Tempo real | Fora do MVP | Inviável localmente no hardware atual |
 
 Opções descartadas: APIs pagas (Claude, OpenAI, Gemini pago, DeepSeek) por custo;

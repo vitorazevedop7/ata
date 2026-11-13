@@ -1,9 +1,10 @@
-import { readFile, rm, stat, writeFile } from 'fs/promises'
+import { readFile, rm, stat } from 'fs/promises'
 import { availableParallelism } from 'os'
 import { join } from 'path'
 import type { Channel, Transcript, TranscriptSegment } from '../shared/types'
 import { channelFile, recordingDir, transcriptFile } from './paths'
 import { run } from './process'
+import { writeFileAtomic } from './store'
 import { resolveTools, type Tools } from './tools'
 
 // System first: it is usually the longer channel and the one people wait for.
@@ -109,5 +110,5 @@ export async function transcribe(
     languages,
     segments
   }
-  await writeFile(transcriptFile(id), JSON.stringify(transcript, null, 2))
+  await writeFileAtomic(transcriptFile(id), JSON.stringify(transcript, null, 2))
 }

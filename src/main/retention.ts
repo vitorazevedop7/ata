@@ -1,22 +1,26 @@
 import { BrowserWindow } from 'electron'
-import { isBusy } from './jobs'
+import type { RecordingSummary } from '../shared/types'
+import { isBusy, resumePendingJobs } from './jobs'
 import { recoverInterruptedRecordings } from './recordings'
-import { audioExpiresAt, deleteAudio, listIds, readMeta, summarize } from './store'
+import { deleteAudio, listIds, removeLeftoverWorkFiles, summarize } from './store'
 
 const HOUR_MS = 60 * 60 * 1000
 
-/** Deletes the audio of recordings older than the retention period. */
+/** True when the audio's time is up (never for audio that was not transcribed yet). */
+export function isAudioExpired(item: RecordingSummary, now: number): boolean {
+  if (!item.endedAt || !item.hasAudio || !item.audioExpiresAt) return false
+  return Date.parse(item.audioExpiresAt) <= now
+}
+
+/** Deletes the audio of recordings whose retention period is over. */
 async function purgeExpiredAudio(): Promise<number> {
   let purged = 0
   const now = Date.now()
   for (const id of await listIds()) {
     try {
-      const meta = await readMeta(id)
-      // Never touch a recording that is still being recorded or processed.
-      if (!meta.endedAt || isBusy(id)) continue
-      if (audioExpiresAt(meta).getTime() > now) continue
-      const info = await summarize(id)
-      if (!info?.hasAudio) continue
+      const item = await summarize(id)
+      // Never touch a recording that is still being processed.
+      if (!item || !isAudioExpired(item, now) || isBusy(id)) continue
       await deleteAudio(id, 'expired')
       purged++
     } catch {
@@ -26,17 +30,27 @@ async function purgeExpiredAudio(): Promise<number> {
   return purged
 }
 
-async function sweep(): Promise<void> {
-  // First close recordings cut short by a crash, so their audio can expire too.
-  const recovered = await recoverInterruptedRecordings().catch(() => 0)
-  if (recovered + (await purgeExpiredAudio()) > 0) {
-    for (const window of BrowserWindow.getAllWindows()) {
-      window.webContents.send('recordings:changed')
-    }
+function notifyChanged(): void {
+  for (const window of BrowserWindow.getAllWindows()) {
+    window.webContents.send('recordings:changed')
   }
 }
 
+async function sweep(): Promise<void> {
+  // First close recordings cut short by a crash, so their audio can expire too.
+  const recovered = await recoverInterruptedRecordings().catch(() => 0)
+  if (recovered + (await purgeExpiredAudio()) > 0) notifyChanged()
+}
+
+/**
+ * On launch: clears what an interrupted job left behind, picks up the
+ * transcriptions and summaries that never ran, then starts the hourly sweep.
+ */
 export function startRetention(): void {
-  void sweep()
+  void (async () => {
+    await removeLeftoverWorkFiles().catch(() => 0)
+    await sweep()
+    await resumePendingJobs().catch(() => undefined)
+  })()
   setInterval(() => void sweep(), HOUR_MS)
 }

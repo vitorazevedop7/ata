@@ -1,8 +1,8 @@
-import { readFile, writeFile } from 'fs/promises'
+import { readFile } from 'fs/promises'
 import type { ActionItem, Summary, Transcript } from '../shared/types'
 import { ensureModel, ensureOllama, generate } from './ollama'
 import { summaryFile, transcriptFile } from './paths'
-import { readMeta } from './store'
+import { readMeta, writeFileAtomic } from './store'
 
 /** ~7k tokens per call keeps prompt + answer inside a 16k context on CPU. */
 const CHUNK_CHARS = 24_000
@@ -197,6 +197,6 @@ export async function summarize(id: string, report: (percent: number) => void): 
     model: tools.model,
     ...parseDraft(final)
   }
-  await writeFile(summaryFile(id), JSON.stringify(summary, null, 2))
+  await writeFileAtomic(summaryFile(id), JSON.stringify(summary, null, 2))
   report(100)
 }
