@@ -57,3 +57,16 @@ recorte na capa.
 - Seleção na lista e troca de aba não animam (são usadas muitas vezes por dia).
 - Curva padrão `cubic-bezier(0.23, 1, 0.32, 1)`, até 280 ms. Com `prefers-reduced-motion`,
   sobra só a opacidade.
+
+## Marca
+
+- **Ícone:** uma página de ata sobre a capa azul-marinho, com a linha vermelha no meio e as
+  falas alternando dos dois lados, como na transcrição. Fontes em `build/logo/icon.svg` e, para
+  16–32 px, `icon-small.svg` (menos traços, mais grossos).
+- **Na lateral do app** a marca é só a página (`BrandMark` em `components/icons.tsx`), porque
+  a lateral já é a capa.
+- **Capa** (`docs/images/capa.png`, 1280×640): banner do README e prévia do repositório no
+  GitHub. Fonte em `build/logo/cover.html`.
+- `node scripts/brand.mjs` gera de novo `build/icon.png`, `build/icon.ico`,
+  `resources/icon.png` e a capa a partir dessas fontes (precisa do Edge ou do Chrome). No
+  macOS, o electron-builder converte `build/icon.png` para `.icns`.
