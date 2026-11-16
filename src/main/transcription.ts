@@ -10,7 +10,7 @@ import { resolveTools, type Tools } from './tools'
 // System first: it is usually the longer channel and the one people wait for.
 const ORDER: readonly Channel[] = ['system', 'mic']
 
-interface WhisperJson {
+export interface WhisperJson {
   result?: { language?: string }
   transcription?: { offsets: { from: number; to: number }; text: string }[]
 }
@@ -18,6 +18,27 @@ interface WhisperJson {
 export type TranscriptionProgress =
   | { stage: 'converting'; channel: Channel }
   | { stage: 'transcribing'; channel: Channel; percent: number }
+
+/** Reads the percentage whisper.cpp prints with `-pp`, or null for any other line. */
+export function parseProgress(line: string): number | null {
+  const match = /progress =\s*(\d+)%/.exec(line)
+  return match ? Number(match[1]) : null
+}
+
+/** Turns whisper.cpp JSON into the segments of one channel, skipping empty lines. */
+export function toSegments(channel: Channel, json: WhisperJson): TranscriptSegment[] {
+  const segments: TranscriptSegment[] = []
+  for (const item of json.transcription ?? []) {
+    const text = item.text.trim()
+    if (text) segments.push({ channel, startMs: item.offsets.from, endMs: item.offsets.to, text })
+  }
+  return segments
+}
+
+/** Interleaves both channels by start time; on a tie, "mic" comes before "system". */
+export function mergeSegments(segments: readonly TranscriptSegment[]): TranscriptSegment[] {
+  return [...segments].sort((a, b) => a.startMs - b.startMs || a.channel.localeCompare(b.channel))
+}
 
 async function hasAudio(path: string): Promise<boolean> {
   try {
@@ -48,8 +69,8 @@ async function whisper(
   for (const cli of tools.whisperCli) {
     try {
       await run(cli, args, (line) => {
-        const match = /progress =\s*(\d+)%/.exec(line)
-        if (match) onPercent(Number(match[1]))
+        const percent = parseProgress(line)
+        if (percent !== null) onPercent(percent)
       })
       const json = JSON.parse(await readFile(`${outBase}.json`, 'utf8')) as WhisperJson
       await rm(`${outBase}.json`, { force: true })
@@ -90,12 +111,7 @@ export async function transcribe(
         report({ stage: 'transcribing', channel, percent })
       )
       if (json.result?.language) languages[channel] = json.result.language
-      for (const item of json.transcription ?? []) {
-        const text = item.text.trim()
-        if (text) {
-          segments.push({ channel, startMs: item.offsets.from, endMs: item.offsets.to, text })
-        }
-      }
+      segments.push(...toSegments(channel, json))
     } finally {
       await rm(wav, { force: true })
     }
@@ -103,12 +119,11 @@ export async function transcribe(
 
   if (channelsWithAudio === 0) throw new Error('O áudio desta gravação já foi apagado.')
 
-  segments.sort((a, b) => a.startMs - b.startMs || a.channel.localeCompare(b.channel))
   const transcript: Transcript = {
     version: 1,
     createdAt: new Date().toISOString(),
     languages,
-    segments
+    segments: mergeSegments(segments)
   }
   await writeFileAtomic(transcriptFile(id), JSON.stringify(transcript, null, 2))
 }

@@ -2,7 +2,7 @@ bench/out/
 node_modules
 dist
 out
+coverage
 .DS_Store
 .eslintcache
 *.log*
-CLAUDE.local.md
