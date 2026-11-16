@@ -1,6 +1,6 @@
 {
   "name": "ata",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Offline-first meeting recorder, transcriber and summarizer that runs entirely on your computer",
   "keywords": [
     "electron",
