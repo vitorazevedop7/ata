@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Cache models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ env.MODELS }}
           key: ata-models-v1-large-v3-turbo-q5_0-silero-v6.2.0-qwen3.5-4b
