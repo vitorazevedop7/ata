@@ -3,7 +3,7 @@
 [![CI](https://github.com/vitorazevedop7/ata/actions/workflows/ci.yml/badge.svg)](https://github.com/vitorazevedop7/ata/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/vitorazevedop7/ata?label=download)](https://github.com/vitorazevedop7/ata/releases/latest)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
-![Electron](https://img.shields.io/badge/Electron-44-47848f?logo=electron&logoColor=white)
+![Electron](https://img.shields.io/badge/Electron-45-47848f?logo=electron&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6?logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
 

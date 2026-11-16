@@ -79,6 +79,6 @@ Resultado esperado: escolha final dos modelos e confirmação de que o tempo é 
 
 - **Velocidade:** se ficar lento demais, reduzir o modelo do Whisper (`medium`/`small`) ou o do Ollama.
 - **Qualidade do resumo** com modelo pequeno em pt-BR. Mitigação: resumir em partes e juntar no final.
-- **Loopback no Electron:** confirmado no Electron 44 (Windows): `getDisplayMedia` com `audio: 'loopback'` grava o áudio do sistema; o vídeo da tela é descartado.
+- **Loopback no Electron:** confirmado no Electron 44 e no 45 (Windows): `getDisplayMedia` com `audio: 'loopback'` grava o áudio do sistema; o vídeo da tela é descartado.
 - **Eco no microfone:** sem fone de ouvido, o microfone também capta a voz dos outros saindo pelas caixas de som, e ela aparece nos dois canais.
 - **Consentimento:** avisar os outros participantes antes de gravar (LGPD).
