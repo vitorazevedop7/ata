@@ -4,6 +4,17 @@ Todas as mudanças relevantes do Ata. O formato segue o
 [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e as versões seguem o
 [Versionamento Semântico](https://semver.org/lang/pt-BR/).
 
+## [1.0.1] - 2026-11-16
+
+### Mudanças
+
+- Electron atualizado da versão 44 para a 45. A gravação do microfone e do áudio do sistema foi testada no Windows com a versão nova.
+
+### Manutenção
+
+- Dependabot passa a abrir as atualizações de versão maior uma por PR e ignora as que dependem de outros projetos (eslint 10, TypeScript 7) ou que não combinam com o Node do Electron (`@types/node`).
+- `actions/checkout` atualizado da versão 4 para a 7 na CI.
+
 ## [1.0.0] - 2026-11-16
 
 Primeira versão pública.
@@ -33,4 +44,5 @@ Primeira versão pública.
 - Instalador para Windows, sem precisar de administrador.
 - Importar, transcrever, resumir e perguntar no macOS, com as ferramentas do Homebrew.
 
+[1.0.1]: https://github.com/vitorazevedop7/ata/releases/tag/v1.0.1
 [1.0.0]: https://github.com/vitorazevedop7/ata/releases/tag/v1.0.0
