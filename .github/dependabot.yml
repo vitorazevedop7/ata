@@ -5,9 +5,11 @@ updates:
     schedule:
       interval: monthly
     groups:
-      # One PR per month for the tooling, instead of one per package.
+      # Minor and patch updates of the tooling arrive together, once a month.
+      # Major versions come one per PR: each may need its own migration.
       dev-dependencies:
         dependency-type: development
+        update-types: [minor, patch]
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
