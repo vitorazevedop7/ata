@@ -1,7 +1,21 @@
 {
   "name": "ata",
   "version": "1.0.0",
-  "description": "Offline-first meeting recorder, transcriber and summarizer",
+  "description": "Offline-first meeting recorder, transcriber and summarizer that runs entirely on your computer",
+  "keywords": [
+    "electron",
+    "whisper",
+    "ollama",
+    "transcription",
+    "meeting-notes",
+    "offline-first",
+    "local-ai"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitorazevedop7/ata.git"
+  },
+  "bugs": "https://github.com/vitorazevedop7/ata/issues",
   "main": "./out/main/index.js",
   "author": "Vitor Augusto Viana Azevedo",
   "license": "MIT",
@@ -10,6 +24,7 @@
     "format": "prettier --write .",
     "lint": "eslint --cache .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "setup:tools": "node scripts/setup-tools.mjs",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
@@ -21,7 +36,6 @@
     "build:unpack": "npm run build && electron-builder --dir",
     "build:win": "npm run build && electron-builder --win",
     "build:mac": "electron-vite build && electron-builder --mac",
-    "build:linux": "electron-vite build && electron-builder --linux",
     "install:app": "node scripts/install-app.mjs"
   },
   "dependencies": {
@@ -36,6 +50,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "@vitest/coverage-v8": "^5.1.0",
     "electron": "^44.7.2",
     "electron-builder": "^26.15.3",
     "electron-vite": "^6.0.0",
@@ -49,6 +64,9 @@
     "typescript": "^5.9.3",
     "vite": "^8.3.4",
     "vitest": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=22"
   },
   "private": true
 }

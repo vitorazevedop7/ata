@@ -28,7 +28,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npm run test:coverage
       # Includes the typecheck of the main process and the renderer.
       - run: npm run build
 

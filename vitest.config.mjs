@@ -7,6 +7,12 @@ export default defineConfig({
     alias: { electron: fileURLToPath(new URL('test/electron-stub.ts', import.meta.url)) }
   },
   test: {
-    include: ['src/**/*.test.ts']
+    include: ['src/**/*.test.ts'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.d.ts', 'src/renderer/preview*'],
+      reporter: ['text-summary', 'html']
+    }
   }
 })
