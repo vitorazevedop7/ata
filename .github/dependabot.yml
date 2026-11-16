@@ -10,6 +10,17 @@ updates:
       dev-dependencies:
         dependency-type: development
         update-types: [minor, patch]
+    ignore:
+      # The types follow the Node.js that Electron ships (24 in Electron 45),
+      # not the latest Node. Bump by hand when Electron moves to a new Node.
+      - dependency-name: '@types/node'
+        update-types: [version-update:semver-major]
+      # eslint-plugin-react 7.37 does not accept eslint 10 yet.
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      # typescript-eslint 8 supports TypeScript below 6.1 only.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
