@@ -1,0 +1,29 @@
+name: Problema
+description: Algo não funcionou como deveria
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu
+      description: O que você fez, o que esperava e o que viu. Não anexe gravações nem transcrições de reuniões reais.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão do Ata e sistema
+      placeholder: 1.0.0, Windows 11
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Etapa
+      options: [Gravação, Importação, Transcrição, Resumo, Perguntas, Busca, Instalação, Outra]
+  - type: textarea
+    id: log
+    attributes:
+      label: Mensagem de erro
+      description: O texto do erro mostrado no app, se houver.
+      render: text
