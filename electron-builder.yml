@@ -1,17 +1,12 @@
 appId: io.github.vitorazevedop7.ata
 productName: Ata
+copyright: Copyright © 2026 Vitor Augusto Viana Azevedo
 directories:
   buildResources: build
+# Only the compiled app and its icon go into the package (package.json is always included).
 files:
-  - '!**/.vscode/*'
-  - '!src/*'
-  - '!electron.vite.config.{js,ts,mjs,cjs}'
-  - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
-  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-  - '!{bench,docs,scripts,test}/**'
-  - '!{vitest.config.mjs,LICENSE}'
-  - '!{.editorconfig,.gitignore}'
+  - out/**/*
+  - resources/**/*
 asarUnpack:
   - resources/**
 win:
@@ -22,24 +17,13 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  category: public.app-category.productivity
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    - NSMicrophoneUsageDescription: O Ata usa o microfone para gravar a sua voz nas reuniões.
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
-linux:
-  target:
-    - AppImage
-    - snap
-    - deb
-  maintainer: electronjs.org
-  category: Utility
-appImage:
-  artifactName: ${name}-${version}.${ext}
 npmRebuild: false
-# No auto-update server: the app is installed and updated locally.
+# No auto-update server: new versions are installed from the GitHub releases.
 publish: null
